@@ -46,7 +46,7 @@ Generating linear maps of partial derivatives and integrals:
 
 Arithmetic:
 
-``
+```
 ;; (2xy + 3x + 5y + 7) + (x^2y + 4x + y) = x^2y + 2xy + 7x + 6y +7
 => (add [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] [[1 2 1] [4 1 0] [1 0 1]])
 [[1 2 1] [2 1 1] [7 1 0] [6 0 1] [7 0 0]]
