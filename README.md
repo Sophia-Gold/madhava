@@ -14,7 +14,7 @@ Many thanks to Doug McIlroy for feedback and encouragement along the way. His [P
 
 ##Usage
 
-Generating linear maps of partial derivatives and integrals:
+Generating linear maps of partial derivatives:
 
 ```
 ;; 2xy + 3x + 5y + 7
@@ -25,7 +25,11 @@ Generating linear maps of partial derivatives and integrals:
   {0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
    1 {1 [[2 0 1] [3 0 0]], 2 [[2 1 0] [5 0 0]]},
    2 {1 {1 [], 2 [[2 0 0]]}, 2 {1 [[2 0 0]], 2 []}}}>
+```
 
+...and integrals:
+
+```
 => (def int-map (atom {}))
 => (int [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] int-map 3)
 => (pprint int-map)
@@ -59,7 +63,8 @@ Arithmetic:
 => (scale [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 2)
 [[4 1 1] [6 1 0] [10 0 1] [14 0 0]]
 
-;; (2xy + 3x + 5y + 7) * (x^2y + 4x + y) = 2x^3y^2 + 3x^3y + 5x^2y^2 + 15x^2y + 2xy^2 + 12x^2 + 23xy + 5y^2 + 28x + 7y
+;; (2xy + 3x + 5y + 7) * (x^2y + 4x + y) =
+;; 2x^3y^2 + 3x^3y + 5x^2y^2 + 15x^2y + 2xy^2 + 12x^2 + 23xy + 5y^2 + 28x + 7y
 => (mul [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] [[1 2 1] [4 1 0] [1 0 1]])
 [[2 3 2] [3 3 1] [5 2 2] [15 2 1] [2 1 2] [12 2 0] [23 1 1] [5 0 2] [28 1 0] [7 0 1]]
 ```
