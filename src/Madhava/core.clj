@@ -22,7 +22,8 @@
                  (range 1 (count (first p)))))
           (diff-loop [n p]
             (when (<= n order)
-              (map #(diff-loop (inc n) (diff-vars (first %) m (update (second %) 0 inc))) p)))]
+              (doseq [x p]
+                (diff-loop (inc n) (diff-vars (first x) m (update (second x) 0 inc))))))]
     (swap! m assoc 0 p)
     (diff-loop 0 [[p [0]]])))
 
@@ -42,7 +43,8 @@
                  (range 1 (count (first p)))))
           (int-loop [n p]
             (when (<= n order)
-              (map #(int-loop (inc n) (int-vars (first %) m (update (second %) 0 inc))) p)))]
+              (doseq [x p]
+                (int-loop (inc n) (int-vars (first x) m (update (second x) 0 inc))))))]
     (swap! m assoc 0 p)
     (int-loop 0 [[p [0]]])))
 

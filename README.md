@@ -6,7 +6,7 @@
 
 ---
 
-Madhava is a Clojure library for forward mode [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and integration of partial differential equations. As opposed to many other functional AD libraries, Madhava takes a stream processing approach by generating linear maps of all partials up to a given order at once and storing them by keys in hash-maps. As functions are represented as dense collections of n-tuples stored in Clojure vectors, this approach is both simple and extremely fast: capable of generating four orders of partial derivatives from hairy three dimensional functions in around one microsecond on commodity CPUs. Additional functions are included for basic arithmetic operations, linear transformations, and several common Taylor series.
+Madhava is a Clojure library for forward mode [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and integration of partial differential equations. As opposed to many other functional AD libraries, Madhava takes a stream processing approach by generating linear maps of all partials up to a given order at once and storing them by keys in hash-maps. As functions are represented as dense collections of n-tuples stored in Clojure vectors, this approach is both simple and extremely fast: capable of generating four orders of partial derivatives from hairy three dimensional functions in less than 0.5ms on commodity CPUs. Additional functions are included for basic arithmetic operations, linear transformations, and several common Taylor series.
 
 Many thanks to Doug McIlroy for feedback and encouragement along the way. His [Power Serious](http://www.cs.dartmouth.edu/~doug/powser.html) package for Haskell will always be an inspiration for elegant software design.
 
@@ -106,12 +106,12 @@ Benchmarking:
 ;; 3 dimensions, 5 terms, 4 orders tested on 2.6GHz Core i7 
 => (use 'criterium.core)
 => (quick-bench (doall (diff [[5 4 3 3] [8 2 1 2] [1 0 4 0] [2 0 0 3] [5 1 0 0]] (atom {}) 4)))
-Evaluation count : 559764 in 6 samples of 93294 calls.
-             Execution time mean : 1.049041 µs
-    Execution time std-deviation : 24.794316 ns
-   Execution time lower quantile : 1.027316 µs ( 2.5%)
-   Execution time upper quantile : 1.077457 µs (97.5%)
-                   Overhead used : 7.265547 ns
+Evaluation count : 1464 in 6 samples of 244 calls.
+             Execution time mean : 419.807421 µs
+    Execution time std-deviation : 7.947469 µs
+   Execution time lower quantile : 412.119881 µs ( 2.5%)
+   Execution time upper quantile : 430.464868 µs (97.5%)
+                   Overhead used : 7.402016 ns
 ```
 
 ---
