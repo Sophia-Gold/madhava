@@ -12,7 +12,7 @@ Many thanks to Doug McIlroy for feedback and encouragement along the way. His [P
 
 ---
 
-##Usage
+## Usage
 
 Generating linear maps of partial derivatives:
 
