@@ -1,5 +1,7 @@
 (ns Madhava.core
-  (:require [clojure.pprint :refer [pprint]]))
+  (:require [clojure.pprint :refer [pprint]]
+            [clojure.data.int-map :as i]
+            [com.rpl.specter :refer :all]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -96,6 +98,46 @@
                (conj result (vec (cons (+ (ffirst test) (ffirst (next test))) (nfirst test)))))
         (recur (inc idx) (next test) (conj result (first test)))))))
 
+(defn deep-merge-with [f & maps]
+  (apply
+    (fn m [& maps]
+      (if (every? map? maps)
+        (apply merge-with m maps)
+        (apply f maps)))
+    maps))
+
+;; navigate to values
+(def LEAVES
+  (recursive-path [] p
+    (if-path map?
+      [MAP-VALS p]
+      STAY
+      )))
+
+;; navigate to lowest level map
+(def MAP-NODES
+  (recursive-path [] p
+    (if-path map?
+      (continue-then-stay MAP-VALS p))
+    ))
+
+(defn search-map [val map]
+  (select [LEAVES #(= % val)] @map))
+
+;; filter empty vectors
+(defn de-null [map]
+  (setval [LEAVES #(= [] %)] NONE @map))
+
+(defn sort-map [map]
+  (transform MAP-NODES #(into (sorted-map) %) @map))
+
+;;remove keys
+(defn de-key [map]
+  (transform MAP-NODES vals @map))
+
+(defn map-to-seq [map]
+  (select [LEAVES ALL] @map))
+  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; ARITHMETIC
@@ -126,6 +168,15 @@
   (mul
    (scale (get-in @m (vec keys1)) weight1)
    (scale (get-in @m (vec keys2)) weight2)))
+
+(defn add-maps [& maps]
+  (deep-merge-with add maps))
+
+(defn mul-maps [& maps]
+  (deep-merge-with mul maps))
+
+(defn transform-map [f map]
+  (transform [LEAVES ALL] f @map))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -177,5 +228,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defmacro print-map [map]
+  `(pprint @~map
+           (clojure.java.io/writer
+            (str (quote ~map) ".txt"))))
+
 (defn -main []
   )
+     
+
