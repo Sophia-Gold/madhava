@@ -18,7 +18,7 @@ Generating linear maps of partial derivatives:
 
 ```
 ;; 2xy + 3x + 5y + 7
-=> (def diff-map (atom {}))
+=> (def diff-map (atom (i/int-map)))
 => (diff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] diff-map 2)
 => (pprint diff-map)
 #<Atom@31648880: 
@@ -30,7 +30,7 @@ Generating linear maps of partial derivatives:
 Integrals:
 
 ```
-=> (def int-map (atom {}))
+=> (def int-map (atom (i/int-map)))
 => (int [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] int-map 3)
 => (pprint int-map)
 #<Atom@18802109: 
@@ -72,7 +72,7 @@ Arithmetic:
 Linear transforms:
 
 ```
-=> (def diff-map (atom {}))
+=> (def diff-map (atom (i/int-map)))
 => (diff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] diff-map 1)
 => (linear-transform diff-map [(Math/cos 0.5) 1 1] [(Math/sin 0.5) 1 2])
 [[1.682941969615793 1 1] [2.5244129544236897 1 0] [4.207354924039483 0 1] [6.311032386059225 0 0]]
@@ -105,13 +105,13 @@ Benchmarking:
 ```
 ;; 3 dimensions, 5 terms, 4 orders tested on 2.6GHz Core i7 
 => (use 'criterium.core)
-=> (quick-bench (doall (diff [[5 4 3 3] [8 2 1 2] [1 0 4 0] [2 0 0 3] [5 1 0 0]] (atom {}) 4)))
-Evaluation count : 1464 in 6 samples of 244 calls.
-             Execution time mean : 419.807421 µs
-    Execution time std-deviation : 7.947469 µs
-   Execution time lower quantile : 412.119881 µs ( 2.5%)
-   Execution time upper quantile : 430.464868 µs (97.5%)
-                   Overhead used : 7.402016 ns
+=> (quick-bench (doall (diff [[5 4 3 3] [8 2 1 2] [1 0 4 0] [2 0 0 3] [5 1 0 0]] (atom (i/int-map)) 4)))
+Evaluation count : 1548 in 6 samples of 258 calls.
+             Execution time mean : 393.937753 µs
+    Execution time std-deviation : 7.392668 µs
+   Execution time lower quantile : 389.169453 µs ( 2.5%)
+   Execution time upper quantile : 404.522457 µs (97.5%)
+                   Overhead used : 7.561555 ns
 ```
 
 ---
@@ -119,4 +119,4 @@ Evaluation count : 1464 in 6 samples of 244 calls.
 *Features planned for future versions:*
 
 + *Division using Buchberger's algorithm*
-+ *Multivariate Horner Scheme*
++ *Composition using Horner Scheme*
