@@ -1,8 +1,8 @@
 (ns Madhava.core
   (:require [clojure.pprint :refer [pprint]]
             [clojure.data.int-map :as i]
-            [com.rpl.specter :refer :all]))
-
+            [com.rpl.specter :refer :all]
+            [MonteCarlo.core :refer :all]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
