@@ -169,6 +169,19 @@
    (scale (get-in @m (vec keys1)) weight1)
    (scale (get-in @m (vec keys2)) weight2)))
 
+(defn compose [f g var]
+  (loop [f f
+         result []]
+    (let [term (first f)]
+      (if (nil? term)
+        result
+        (recur (next f) (if (zero? (nth term var))
+                          (add [term] result)
+                          (simplify (sort
+                                     (vec (concat result
+                                                  (nth (iterate (partial mul [(assoc term var 0)]) g)
+                                                       (nth term var))))))))))))
+
 (defn add-maps [& maps]
   (deep-merge-with add maps))
 
@@ -228,6 +241,22 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; MACROS
+
+(defmacro diff-once [poly order]
+  (let [store (gensym)]
+    `(do
+       (def ~store (atom (i/int-map)))
+       (diff ~poly ~store ~order)
+       (pprint ~store))))
+
+(defmacro int-once [poly order]
+  (let [store (gensym)]
+    `(do
+       (def ~store (atom (i/int-map)))
+       (int ~poly ~store ~order)
+       (pprint ~store))))
+
 (defmacro print-map [map]
   `(pprint @~map
            (clojure.java.io/writer
@@ -235,5 +264,3 @@
 
 (defn -main []
   )
-     
-

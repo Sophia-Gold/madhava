@@ -6,7 +6,9 @@
 
 ---
 
-Madhava is a Clojure library for forward mode [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and integration of partial differential equations. As opposed to many other functional AD libraries, Madhava takes a stream processing approach by generating linear maps of all partials up to a given order at once and storing them by keys in hash-maps. As functions are represented as dense collections of n-tuples stored in Clojure vectors, this approach is both simple and extremely fast: capable of generating four orders of partial derivatives from hairy three dimensional functions in less than 0.5ms on commodity CPUs. Additional functions are included for basic arithmetic operations, linear transformations, and several common Taylor series.
+Madhava is a Clojure library for [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and integration of partial differential equations. As opposed to many other functional AD libraries, Madhava takes a stream processing approach by generating linear maps of all partials up to a given order at once and storing them by keys in hash-maps. As functions are represented as dense collections of n-tuples stored in Clojure vectors, this approach is both simple and extremely fast: capable of generating four orders of partial derivatives from hairy three dimensional functions in less than 0.5ms on commodity CPUs.
+
+Additional functions are included for basic arithmetic operations, linear transformations, functional composition, and several common Taylor series. Since partials can be composed after they've been generated as data (as opposed to using the language's built-in composition function) the chain rule can be applied in arbitrary order, making reverse and mixed mode AD as simple as forward mode&mdash;a major distinction compared to other AD packages.
 
 Many thanks to Doug McIlroy for feedback and encouragement along the way. His [Power Serious](http://www.cs.dartmouth.edu/~doug/powser.html) package for Haskell will always be an inspiration for elegant software design.
 
@@ -25,6 +27,12 @@ Generating linear maps of partial derivatives:
   {0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
    1 {1 [[2 0 1] [3 0 0]], 2 [[2 1 0] [5 0 0]]},
    2 {1 {1 [], 2 [[2 0 0]]}, 2 {1 [[2 0 0]], 2 []}}}>
+;; or in one shot:
+=> (diff-once [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 2)
+#<Atom@31648880: 
+  {0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
+   1 {1 [[2 0 1] [3 0 0]], 2 [[2 1 0] [5 0 0]]},
+   2 {1 {1 [], 2 [[2 0 0]]}, 2 {1 [[2 0 0]], 2 []}}}>
 ```
 
 Integrals:
@@ -33,6 +41,20 @@ Integrals:
 => (def int-map (atom (i/int-map)))
 => (int [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] int-map 3)
 => (pprint int-map)
+#<Atom@18802109: 
+  {0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
+   1 {1 [[1 2 1] [3/2 2 0]], 2 [[1 1 2] [5/2 0 2]]},
+   2
+   {1 {1 [[1/3 3 1] [1/2 3 0]], 2 [[1/2 2 2]]},
+    2 {1 [[1/2 2 2]], 2 [[1/3 1 3] [5/6 0 3]]}},
+   3
+   {1
+    {1 {1 [[1/12 4 1] [1/8 4 0]], 2 [[1/6 3 2]]},
+     2 {1 [[1/6 3 2]], 2 [[1/6 2 3]]}},
+    2
+    {1 {1 [[1/6 3 2]], 2 [[1/6 2 3]]},
+     2 {1 [[1/6 2 3]], 2 [[1/12 1 4] [5/24 0 4]]}}}}>
+=> (int-once [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 3)
 #<Atom@18802109: 
   {0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
    1 {1 [[1 2 1] [3/2 2 0]], 2 [[1 1 2] [5/2 0 2]]},
@@ -78,6 +100,19 @@ Linear transforms:
 [[1.682941969615793 1 1] [2.5244129544236897 1 0] [4.207354924039483 0 1] [6.311032386059225 0 0]]
 ```
 
+Composition:
+
+```
+;; f = 2xy + 3x + 5y + 7
+=> (def f [[2 1 1] [3 1 0] [5 0 1] [7 0 0]])
+;; f(f(x)) = 4xy^2 + 10y^2 + 12xy + 9x + 34y + 28
+=> (compose f f 1)
+=> [[4 1 2] [12 1 1] [10 0 2] [9 1 0] [34 0 1] [28 0 0]]
+;; f(f(y)) = 4x^2y + 6x^2 + 10xy + 22x + 45y + 42
+=> (compose f f 2)
+=> [[4 2 1] [6 2 0] [20 1 1] [32 1 0] [25 0 1] [42 0 0]]
+```
+
 Taylor Series:
 
 ```
@@ -100,6 +135,14 @@ Taylor Series:
 [[1/40320 8] [1/720 6] [1/24 4] [1/2 2] [1 0]]
 ```
 
+Printing to a text file:
+
+```
+=> (def diff-map (atom (i/int-map)))
+=> (diff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] diff-map 2)
+=> (print-map diff-map)
+```
+
 Benchmarking:
 
 ```
@@ -113,10 +156,3 @@ Evaluation count : 1548 in 6 samples of 258 calls.
    Execution time upper quantile : 404.522457 µs (97.5%)
                    Overhead used : 7.561555 ns
 ```
-
----
-
-*Features planned for future versions:*
-
-+ *Division using Buchberger's algorithm*
-+ *Composition using Horner Scheme*
