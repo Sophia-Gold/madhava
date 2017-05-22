@@ -8,7 +8,7 @@
 
 Madhava is a Clojure library for [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and integration of partial differential equations. As opposed to many other functional AD libraries, Madhava takes a stream processing approach by generating linear maps of all partials up to a given order at once and storing them by keys in hash-maps. As functions are represented as dense collections of n-tuples stored in Clojure vectors, this approach is both simple and extremely fast: capable of generating four orders of partial derivatives from hairy three dimensional functions in less than 0.5ms on commodity CPUs.
 
-Additional functions are included for basic arithmetic operations, linear transformations, functional composition, and several common Taylor series. Since partials can be composed after they've been generated as data (as opposed to using the language's built-in composition function) the chain rule can be applied in arbitrary order, making reverse and mixed mode AD as simple as forward mode&mdash;a major distinction compared to other AD packages.
+Additional functions are included for basic arithmetic operations, linear transformations, functional composition, and several common Taylor series. Since partials can be composed after they've been generated as data (as opposed to using the language's built-in composition function) the chain rule can be applied in arbitrary order, making reverse and mixed mode as simple as forward mode&mdash;a major distinction compared to other AD packages.
 
 Many thanks to Doug McIlroy for feedback and encouragement along the way. His [Power Serious](http://www.cs.dartmouth.edu/~doug/powser.html) package for Haskell will always be an inspiration for elegant software design.
 
