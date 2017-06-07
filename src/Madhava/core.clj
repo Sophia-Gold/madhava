@@ -102,7 +102,7 @@
   (apply
     (fn m [& maps]
       (if (every? map? maps)
-        (apply merge-with m maps)
+        (apply i/merge-with m maps)
         (apply f maps)))
     maps))
 
