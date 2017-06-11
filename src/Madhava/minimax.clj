@@ -1,18 +1,90 @@
 (ns minimax.core
   (:require [Madhava.core :as Madhava :refer :all]))
 
-;; ???:
-;; tangent
-;; bundle
-;; distance
-;; write
-;; v+
-;; v-
-;; k*v
+(defn v+ [u v]
+  (map + u v))
 
-(defn gradient [f & x]
-  (let [n (.lastIndexOf x)]
-    (map #(tangent ((j* f) (bundle x (e % n)))) n)))  
+(defn v- [u v]
+  (map - u v))
+
+(def k*v [k v]
+  (map #(* k %) v))
+
+(defn dot [u v]
+  (reduce + 0
+          (map * u v)))
+
+(define magnitude-squared [v]
+  (dot v v))
+
+(define magnitude [v]
+  (Math/sqrt (magnitude-squared v)))
+
+(define distance-squared [u v]
+  (magnitude-squared (v- v u)))
+
+(defn distance [u v]
+  (Math/sqrt (distance-squared u v)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn derivative-using-j* [f]
+  (fn [x]
+    (second
+     (j* f x 1))))
+
+(defn derivative-using-*j [f]
+  (fn [x]
+    (second
+     (*j f x 1))))
+
+(defn derivative [f]
+  (derivative-using-*j f))
+
+(defn gradient-using-*j [f]
+  (derivative-using-*j f))
+
+(defn gradient-using-j* [f]
+  (fn [x]
+    (let [n (.lastIndexOf x)]
+      (map #(second (j* f x (e % n))) n))))
+
+(defn gradient-1 [f]
+  (gradient-using-*j f))
+
+(defn gradient [f]
+  (fn [x]
+    (let [n (.lastIndexOf x)]
+      (map #(tangent (j* f) (bundle x (e % n))) n))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn root [f x epsilon]
+ (let [x-prime (- x (/ (f x) ((derivative f) x)))]
+   (if (<= (Math/abs (- x x-prime)) epsilon)
+     x
+     (recur f x-prime epsilon))))
+
+(defn argmin-1 [f x epsilon]
+  (root (derivative f) x epsilon))
+
+(define argmax-1 [f x epsilon]
+  (root (derivative f) x epsilon))
+
+(defn invert [f]
+  (fn [y]
+    (root #(Math/abs (- (f %) y)) 1 (Math/pow 10 -5))))
+
+(defn gradient-descent [f x epsilon]
+ (let [g ((gradient f) x)]
+   (if (<= (magnitude g) epsilon)
+     x
+     (recur
+      f
+      (v+ x (k*v (argmin #(f (v+ x (k*v % g))) 0 epsilon) g))
+      epsilon))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn argmin [f x]
   (let [g (gradient f)
@@ -45,8 +117,9 @@
         [x2 y2] (argmax (fn [x2 y2]
                           (f (first [x1 y1]) (fnext [x1 y1]) x2 y2)
                           start))]
-    [[(write x1) (write y1)]
-     [(write x2) (write y2)]]))
+    [[x1 y1] [x2 y2]]))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn naive-euler [w]
   (let [charges [[10 (- 10 w)]
@@ -75,4 +148,4 @@
         [w*] (argmin (fn [[w]]
                        (naive-euler w))
                      [w0])]
-    (write w*)))
+    w*))
