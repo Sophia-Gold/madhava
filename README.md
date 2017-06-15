@@ -6,7 +6,7 @@
 
 ---
 
-Madhava is a Clojure library for [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and integration of partial differential equations. As opposed to many other functional AD libraries, Madhava takes a stream processing approach by generating linear maps of all partials up to a given order at once and storing them by keys in hash-maps. As functions are represented as dense collections of n-tuples stored in Clojure vectors, this approach is both simple and extremely fast: capable of generating four orders of partial derivatives from hairy three dimensional functions in less than 0.5ms on commodity CPUs.
+Madhava is a Clojure library for [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and integration of partial differential equations. As opposed to many other functional AD libraries, Madhava takes a stream processing approach by generating all partials up to a given order at once and storing them in integer-keyed radix tries. As functions are represented as dense collections of n-tuples stored in Clojure vectors, this approach is both simple and extremely fast: capable of generating four orders of partial derivatives from hairy three dimensional functions in less than 0.5ms on commodity CPUs.
 
 Additional functions are included for basic arithmetic operations, linear transformations, functional composition, and several common Taylor series. Since partials can be composed after they've been generated as data (as opposed to using the language's built-in composition function) the chain rule can be applied in arbitrary order, making reverse and mixed mode as simple as forward mode&mdash;a major distinction compared to other AD packages.
 
@@ -16,58 +16,68 @@ Many thanks to Doug McIlroy for feedback and encouragement along the way. His [P
 
 ## Usage
 
-Generating linear maps of partial derivatives:
+Generating partial derivatives:
 
 ```
 ;; 2xy + 3x + 5y + 7
 => (def diff-map (atom (i/int-map)))
 => (diff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] diff-map 2)
-=> (pprint diff-map)
-#<Atom@31648880: 
-  {0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
-   1 {1 [[2 0 1] [3 0 0]], 2 [[2 1 0] [5 0 0]]},
-   2 {1 {1 [], 2 [[2 0 0]]}, 2 {1 [[2 0 0]], 2 []}}}>
+=> (pprint @diff-map)
+{0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
+ 11 [[2 0 1] [3 0 0]],
+ 12 [[2 1 0] [5 0 0]],
+ 211 [],
+ 212 [[2 0 0]],
+ 221 [[2 0 0]],
+ 222 []}
 ;; or in one shot:
 => (diff-once [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 2)
-#<Atom@31648880: 
-  {0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
-   1 {1 [[2 0 1] [3 0 0]], 2 [[2 1 0] [5 0 0]]},
-   2 {1 {1 [], 2 [[2 0 0]]}, 2 {1 [[2 0 0]], 2 []}}}>
+{0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
+ 11 [[2 0 1] [3 0 0]],
+ 12 [[2 1 0] [5 0 0]],
+ 211 [],
+ 212 [[2 0 0]],
+ 221 [[2 0 0]],
+ 222 []}
 ```
 
 Integrals:
 
 ```
-=> (def int-map (atom (i/int-map)))
-=> (int [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] int-map 3)
+=> (def diff-map (atom (i/int-map)))
+=> (anti-diff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] diff-map 3)
 => (pprint int-map)
-#<Atom@18802109: 
-  {0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
-   1 {1 [[1 2 1] [3/2 2 0]], 2 [[1 1 2] [5/2 0 2]]},
-   2
-   {1 {1 [[1/3 3 1] [1/2 3 0]], 2 [[1/2 2 2]]},
-    2 {1 [[1/2 2 2]], 2 [[1/3 1 3] [5/6 0 3]]}},
-   3
-   {1
-    {1 {1 [[1/12 4 1] [1/8 4 0]], 2 [[1/6 3 2]]},
-     2 {1 [[1/6 3 2]], 2 [[1/6 2 3]]}},
-    2
-    {1 {1 [[1/6 3 2]], 2 [[1/6 2 3]]},
-     2 {1 [[1/6 2 3]], 2 [[1/12 1 4] [5/24 0 4]]}}}}>
-=> (int-once [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 3)
-#<Atom@18802109: 
-  {0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
-   1 {1 [[1 2 1] [3/2 2 0]], 2 [[1 1 2] [5/2 0 2]]},
-   2
-   {1 {1 [[1/3 3 1] [1/2 3 0]], 2 [[1/2 2 2]]},
-    2 {1 [[1/2 2 2]], 2 [[1/3 1 3] [5/6 0 3]]}},
-   3
-   {1
-    {1 {1 [[1/12 4 1] [1/8 4 0]], 2 [[1/6 3 2]]},
-     2 {1 [[1/6 3 2]], 2 [[1/6 2 3]]}},
-    2
-    {1 {1 [[1/6 3 2]], 2 [[1/6 2 3]]},
-     2 {1 [[1/6 2 3]], 2 [[1/12 1 4] [5/24 0 4]]}}}}>
+{0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
+ 11 [[1 2 1] [3/2 2 0]],
+ 12 [[1 1 2] [5/2 0 2]],
+ 211 [[1/3 3 1] [1/2 3 0]],
+ 212 [[1/2 2 2]],
+ 221 [[1/2 2 2]],
+ 222 [[1/3 1 3] [5/6 0 3]],
+ 3111 [[1/12 4 1] [1/8 4 0]],
+ 3112 [[1/6 3 2]],
+ 3121 [[1/6 3 2]],
+ 3122 [[1/6 2 3]],
+ 3211 [[1/6 3 2]],
+ 3212 [[1/6 2 3]],
+ 3221 [[1/6 2 3]],
+ 3222 [[1/12 1 4] [5/24 0 4]]}
+=> (anti-diff-once [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 3)
+{0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
+ 11 [[1 2 1] [3/2 2 0]],
+ 12 [[1 1 2] [5/2 0 2]],
+ 211 [[1/3 3 1] [1/2 3 0]],
+ 212 [[1/2 2 2]],
+ 221 [[1/2 2 2]],
+ 222 [[1/3 1 3] [5/6 0 3]],
+ 3111 [[1/12 4 1] [1/8 4 0]],
+ 3112 [[1/6 3 2]],
+ 3121 [[1/6 3 2]],
+ 3122 [[1/6 2 3]],
+ 3211 [[1/6 3 2]],
+ 3212 [[1/6 2 3]],
+ 3221 [[1/6 2 3]],
+ 3222 [[1/12 1 4] [5/24 0 4]]}
 ```
 
 Arithmetic:
@@ -149,10 +159,10 @@ Benchmarking:
 ;; 3 dimensions, 5 terms, 4 orders tested on 2.6GHz Core i7 
 => (use 'criterium.core)
 => (quick-bench (doall (diff [[5 4 3 3] [8 2 1 2] [1 0 4 0] [2 0 0 3] [5 1 0 0]] (atom (i/int-map)) 4)))
-Evaluation count : 1548 in 6 samples of 258 calls.
-             Execution time mean : 393.937753 µs
-    Execution time std-deviation : 7.392668 µs
-   Execution time lower quantile : 389.169453 µs ( 2.5%)
-   Execution time upper quantile : 404.522457 µs (97.5%)
-                   Overhead used : 7.561555 ns
+Evaluation count : 1848 in 6 samples of 308 calls.
+             Execution time mean : 326.552184 µs
+    Execution time std-deviation : 7.665505 µs
+   Execution time lower quantile : 318.624896 µs ( 2.5%)
+   Execution time upper quantile : 337.507200 µs (97.5%)
+                   Overhead used : 7.373353 ns
 ```
