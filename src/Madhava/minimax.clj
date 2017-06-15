@@ -28,31 +28,71 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defn derivative-using-j* [f]
+(defn j* [x]
+  (bundle x
+          (perturb '(0 x))))
+
+(defn derivative-using-j*-1 [f]
   (fn [x]
     (second
      (j* f x 1))))
+(defn derivative-using-j*-2 [f]
+ (let [f-forward (j* f)]
+   (fn [x]
+     (unperturb
+      (tangent
+       (f-forward
+        (bundle x (perturb 1))))))))
 
-(defn derivative-using-*j [f]
+(defn derivative-using-*j-1 [f]
   (fn [x]
     (second
      (*j f x 1))))
+(defn derivative-using-*j-2 [f]
+ (let [f-reverse (*j f)]
+   (fn [x]
+     (next (unsensitize ((next (f-reverse (*j x)))
+                         (sensitize 1)))))))
 
 (defn derivative [f]
   (derivative-using-*j f))
 
-(defn gradient-using-*j [f]
+(defn gradient-using-*j-1 [f]
   (derivative-using-*j f))
+(defn derivative-using-*j-2 [f]
+ (let [f-reverse (*j f)]
+   (fn [x]
+     (next (unsensitize ((next (f-reverse (*j x)))
+                         (sensitize 1)))))))
 
-(defn gradient-using-j* [f]
+;; An n-dimensional vector with x in position i and zeros elsewhere
+(defn ex [x i n]
+  (if (zero? n)
+    '()
+    (cons (if (zero? i)
+            x
+            0)
+          (ex x (dec i) (dec n)))))
+
+;; The ith n-dimensional basis vector
+(defn e [i n]
+  (ex 1 i n))
+
+(defn gradient-using-j*-1 [f]
   (fn [x]
     (let [n (.lastIndexOf x)]
       (map #(second (j* f x (e % n))) n))))
+(defn gradient-using-j*-2 [f]
+  (let [f-forward (j* f)]
+    (fn [x]
+      (let [n (.lastIndexOf x)]
+        (map 
+         #(unperturb (tangent (f-forward (bundle % (perturb (e i n))))))
+	   n)))))
 
 (defn gradient-1 [f]
   (gradient-using-*j f))
-
-(defn gradient [f]
+(defn gradient-2 [f]
   (fn [x]
     (let [n (.lastIndexOf x)]
       (map #(tangent (j* f) (bundle x (e % n))) n))))

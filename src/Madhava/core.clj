@@ -15,9 +15,10 @@
                        :when (not (zero? v))] 
                       (-> expr
                           (update 0 * v)
-                          (update (peek idx) dec))))]
-  (swap! m assoc-in idx partial)
-  [partial idx]))  
+                          (update (peek idx) dec))))
+        key (Long/parseLong (apply str idx))]
+  (swap! m assoc key partial)
+  [partial idx]))
 (defn diff [p m order]
   (letfn [(diff-vars [p m idx]
             (map #(partial-diff p m (conj idx %))
@@ -25,7 +26,8 @@
           (diff-loop [n p]
             (when (<= n order)
               (doseq [x p]
-                (diff-loop (inc n) (diff-vars (first x) m (update (second x) 0 inc))))))]
+                (diff-loop (inc n)
+                           (diff-vars (first x) m (update (second x) 0 inc))))))]
     (swap! m assoc 0 p)
     (diff-loop 0 [[p [0]]])))
 
@@ -36,17 +38,19 @@
                        :when (not (zero? v))] 
                    (-> expr
                        (update 0 / (inc v))
-                       (update (peek idx) inc))))]
-    (swap! m assoc-in idx partial)
+                       (update (peek idx) inc))))
+        key (Long/parseLong (apply str idx))]
+    (swap! m assoc key partial)
     [partial idx]))
-(defn int [p m order]
+(defn anti-diff [p m order]
   (letfn [(int-vars [p m idx]
             (map #(partial-int p m (conj idx %))
                  (range 1 (count (first p)))))
           (int-loop [n p]
             (when (<= n order)
               (doseq [x p]
-                (int-loop (inc n) (int-vars (first x) m (update (second x) 0 inc))))))]
+                (int-loop (inc n)
+                          (int-vars (first x) m (update (second x) 0 inc))))))]
     (swap! m assoc 0 p)
     (int-loop 0 [[p [0]]])))
 
@@ -57,7 +61,7 @@
 (defn add-dim [poly dim]
   (mapv #(vec (concat (take dim %) [0] (drop dim %))) poly))
 
-(defn remove [term poly]
+(defn remove-terms [term poly]
   (filterv #(not= (next term) (next %)) poly))
 
 (defn denull [poly]
@@ -66,7 +70,7 @@
 (defn negate [poly]
   (mapv #(update % 0 -) poly))
 
-(defn sort [poly]
+(defn sort-terms [poly]
 ;; graded lexicographic order
   (vec
    (sort-by #(- (reduce + (next %)))
@@ -78,7 +82,7 @@
          difference sets]
     (if (> i (count intersection))
       (into intersection (mapcat identity difference))
-      (recur (inc i) (next test) (mapv (partial remove (first test)) difference)))))
+      (recur (inc i) (next test) (mapv (partial remove-terms (first test)) difference)))))
 
 (defn intersection [poly1 poly2]
   (vec
@@ -143,7 +147,7 @@
 ;; ARITHMETIC
 
 (defn add [poly1 poly2]
-  (sort
+  (sort-terms
    (denull
     (union (intersection poly1 poly2) poly1 poly2))))
 
@@ -155,7 +159,7 @@
                
 (defn mul [poly1 poly2]
   (simplify
-   (sort
+   (sort-terms
     (for [term1 poly1
           term2 poly2
           :let [coeff (* (first term1) (first term2))]]
@@ -177,7 +181,7 @@
         result
         (recur (next f) (if (zero? (nth term var))
                           (add [term] result)
-                          (simplify (sort
+                          (simplify (sort-terms
                                      (vec (concat result
                                                   (nth (iterate (partial mul [(assoc term var 0)]) g)
                                                        (nth term var))))))))))))
