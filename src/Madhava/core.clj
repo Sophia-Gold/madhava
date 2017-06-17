@@ -1,14 +1,13 @@
 (ns Madhava.core
   (:require [clojure.pprint :refer [pprint]]
             [clojure.data.int-map :as i]
-            [com.rpl.specter :refer :all]
-            [MonteCarlo.core :refer :all]))
+            [com.rpl.specter :refer :all]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; DIFFERENTIATION & INTEGRATION
 
-(defn partial-diff [poly store idx]
+(defn partial-diff [poly tape idx]
   (let [i (peek idx)
         key (Long/parseLong (apply str idx))
         partial (vec
@@ -17,23 +16,23 @@
                        :when (not (zero? v))] 
                    (-> expr
                        (update 0 * v)
-                       (update i dec))))]
-    (swap! store assoc key partial)
+                       (update i dec))))] 
+    (swap! tape assoc key partial)
     [partial idx]))
-(defn diff [poly store order]
-  (letfn [(diff-vars [poly store idx]
-            (map #(partial-diff poly store (conj idx %))
+(defn diff [poly tape order]
+  (letfn [(diff-vars [poly tape idx]
+            (map #(partial-diff poly tape (conj idx %))
                  (range 1 (count (first poly)))))
           (diff-loop [poly n]
             (when (<= n order)
               (doseq [x poly]
                 (diff-loop
-                 (diff-vars (first x) store (update (second x) 0 inc))
+                 (diff-vars (first x) tape (update (second x) 0 inc))
                  (inc n)))))]
-  (swap! store assoc 0 poly)
+  (swap! tape assoc 0 poly)
   (diff-loop [[poly [0]]] 0)))
 
-(defn partial-int [poly store idx]
+(defn partial-int [poly tape idx]
   (let [i (peek idx)
         key (Long/parseLong (apply str idx))
         partial (vec
@@ -43,19 +42,19 @@
                    (-> expr
                        (update 0 / (inc v))
                        (update i inc))))]
-    (swap! store assoc key partial)
+    (swap! tape assoc key partial)
     [partial idx]))
-(defn anti-diff [poly store order]
-  (letfn [(int-vars [poly store idx]
-            (map #(partial-int poly store (conj idx %))
+(defn anti-diff [poly tape order]
+  (letfn [(int-vars [poly tape idx]
+            (map #(partial-int poly tape (conj idx %))
                  (range 1 (count (first poly)))))
           (int-loop [poly n]
             (when (<= n order)
               (doseq [x poly]
                 (int-loop 
-                 (int-vars (first x) store (update (second x) 0 inc))
+                 (int-vars (first x) tape (update (second x) 0 inc))
                  (inc n)))))]
-    (swap! store assoc 0 poly)
+    (swap! tape assoc 0 poly)
     (int-loop [[poly [0]]] 0)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -106,16 +105,6 @@
                (conj result (vec (cons (+ (ffirst test) (ffirst (next test))) (nfirst test)))))
         (recur (inc idx) (next test) (conj result (first test)))))))
 
-(defn search-map [val map]
-  (select [MAP-VALS #(= % val)] @map))
-
-;; filter empty vectors
-(defn de-null [map]
-  (setval [MAP-VALS #(= [] %)] NONE @map))
-
-(defn map-to-seq [map]
-  (select [MAP-VALS #(not= [] %)] @map))
-  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; ARITHMETIC
@@ -130,7 +119,7 @@
 
 (defn scale [poly scalar]
   (mapv #(update % 0 * scalar) poly))
-               
+
 (defn mul [poly1 poly2]
   (simplify
    (sort-terms
@@ -141,11 +130,6 @@
        (cons coeff
              (for [idx (range 1 (count (first poly1)))]
                (+ (get term1 idx) (get term2 idx)))))))))
-
-(defn linear-transform [m [weight1 key1] [weight2 key2]]
-  (mul
-   (scale (get @m key1) weight1)
-   (scale (get @m key2) weight2)))
 
 (defn compose [f g var]
   (loop [f f
@@ -160,11 +144,43 @@
                                                   (nth (iterate (partial mul [(assoc term var 0)]) g)
                                                        (nth term var))))))))))))
 
-;; (defn add-maps [& maps]
-;;   (merge-with add (map deref maps)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; (defn mul-maps [& maps]
-;;   (merge-with mul (map deref maps)))
+;; VECTOR OPERATIONS
+
+(defn linear-transform [m [weight1 key1] [weight2 key2]]
+  (mul
+   (scale (get @m key1) weight1)
+   (scale (get @m key2) weight2)))
+
+(defn grad []
+  )
+
+(defn div []
+  )
+
+(defn curl []
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; MAP FUNCTIONS
+
+(defn search-map [val map]
+  (select [MAP-VALS #(= % val)] @map))
+
+;; filter empty vectors
+(defn denull-map [map]
+  (setval [MAP-VALS #(= [] %)] NONE @map))
+
+(defn map-to-seq [map]
+  (select [MAP-VALS #(not= [] %)] @map))
+
+(defn add-maps [map1 map2]
+  (merge-with add @map1 @map2))
+
+(defn mul-maps [map1 map2]
+  (merge-with mul @map1 @map2))
 
 (defn transform-map [f map]
   (transform MAP-VALS f @map))
@@ -222,18 +238,18 @@
 ;; MACROS
 
 (defmacro diff-once [poly order]
-  (let [store (gensym)]
+  (let [tape (gensym)]
     `(do
-       (def ~store (atom (i/int-map)))
-       (diff ~poly ~store ~order)
-       (pprint @~store))))
+       (def ~tape (atom (i/int-map)))
+       (diff ~poly ~tape ~order)
+       (pprint @~tape))))
 
 (defmacro anti-diff-once [poly order]
-  (let [store (gensym)]
+  (let [tape (gensym)]
     `(do
-       (def ~store (atom (i/int-map)))
-       (anti-diff ~poly ~store ~order)
-       (pprint @~store))))
+       (def ~tape (atom (i/int-map)))
+       (anti-diff ~poly ~tape ~order)
+       (pprint @~tape))))
 
 (defmacro print-map [map]
   `(pprint @~map
