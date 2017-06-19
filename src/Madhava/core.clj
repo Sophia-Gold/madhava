@@ -7,20 +7,20 @@
 
 ;; DIFFERENTIATION & INTEGRATION
 
-(defn partial-diff [poly tape idx]
-  (let [i (peek idx)
-        key (Long/parseLong (apply str idx))
-        partial (vec
-                 (for [expr poly
-                       :let [v (get expr i)]
-                       :when (not (zero? v))] 
-                   (-> expr
-                       (update 0 * v)
-                       (update i dec))))] 
-    (swap! tape assoc key partial)
-    [partial idx]))
 (defn diff [poly tape order]
-  (letfn [(diff-vars [poly tape idx]
+  (letfn [(partial-diff [poly tape idx]
+            (let [i (peek idx)
+                  key (Long/parseLong (apply str idx))
+                  partial (vec
+                           (for [expr poly
+                                 :let [v (get expr i)]
+                                 :when (not (zero? v))] 
+                             (-> expr
+                                 (update 0 * v)
+                                 (update i dec))))] 
+              (swap! tape assoc key partial)
+              [partial idx]))
+          (diff-vars [poly tape idx]
             (map #(partial-diff poly tape (conj idx %))
                  (range 1 (count (first poly)))))
           (diff-loop [poly n]
@@ -32,20 +32,20 @@
   (swap! tape assoc 0 poly)
   (diff-loop [[poly [0]]] 0)))
 
-(defn partial-int [poly tape idx]
-  (let [i (peek idx)
-        key (Long/parseLong (apply str idx))
-        partial (vec
-                 (for [expr poly
-                       :let [v (get expr i)]
-                       :when (not (zero? v))] 
-                   (-> expr
-                       (update 0 / (inc v))
-                       (update i inc))))]
-    (swap! tape assoc key partial)
-    [partial idx]))
 (defn anti-diff [poly tape order]
-  (letfn [(int-vars [poly tape idx]
+  (letfn [(partial-int [poly tape idx]
+            (let [i (peek idx)
+                  key (Long/parseLong (apply str idx))
+                  partial (vec
+                           (for [expr poly
+                                 :let [v (get expr i)]
+                                 :when (not (zero? v))] 
+                             (-> expr
+                                 (update 0 / (inc v))
+                                 (update i inc))))]
+              (swap! tape assoc key partial)
+              [partial idx]))
+          (int-vars [poly tape idx]
             (map #(partial-int poly tape (conj idx %))
                  (range 1 (count (first poly)))))
           (int-loop [poly n]
@@ -55,6 +55,56 @@
                  (int-vars (first x) tape (update (second x) 0 inc))
                  (inc n)))))]
     (swap! tape assoc 0 poly)
+    (int-loop [[poly [0]]] 0)))
+
+(defn pdiff [poly tape order]
+  (letfn [(partial-diff [poly tape idx]
+            (let [i (peek idx)
+                  key (Long/parseLong (apply str idx))
+                  partial (vec
+                           (for [expr poly
+                                 :let [v (get expr i)]
+                                 :when (not (zero? v))] 
+                             (-> expr
+                                 (update 0 * v)
+                                 (update i dec))))] 
+              (send tape assoc key partial)
+              [partial idx]))
+          (diff-vars [poly tape idx]
+            (pmap #(partial-diff poly tape (conj idx %))
+                 (range 1 (count (first poly)))))
+          (diff-loop [poly n]
+            (when (< n order)
+              (doseq [x poly]
+                (diff-loop
+                 (diff-vars (first x) tape (update (second x) 0 inc))
+                 (inc n)))))]
+  (send tape assoc 0 poly)
+  (diff-loop [[poly [0]]] 0)))
+
+(defn anti-pdiff [poly tape order]
+  (letfn [(partial-int [poly tape idx]
+            (let [i (peek idx)
+                  key (Long/parseLong (apply str idx))
+                  partial (vec
+                           (for [expr poly
+                                 :let [v (get expr i)]
+                                 :when (not (zero? v))] 
+                             (-> expr
+                       (update 0 / (inc v))
+                       (update i inc))))]
+              (send tape assoc key partial)
+              [partial idx]))
+          (int-vars [poly tape idx]
+            (pmap #(partial-int poly tape (conj idx %))
+                 (range 1 (count (first poly)))))
+          (int-loop [poly n]
+            (when (< n order)
+              (doseq [x poly]
+                (int-loop 
+                 (int-vars (first x) tape (update (second x) 0 inc))
+                 (inc n)))))]
+    (send tape assoc 0 poly)
     (int-loop [[poly [0]]] 0)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -249,6 +299,20 @@
     `(do
        (def ~tape (atom (i/int-map)))
        (anti-diff ~poly ~tape ~order)
+       (pprint @~tape))))
+
+(defmacro pdiff-once [poly order]
+  (let [tape (gensym)]
+    `(do
+       (def ~tape (agent (i/int-map)))
+       (pdiff ~poly ~tape ~order)
+       (pprint @~tape))))
+
+(defmacro anti-pdiff-once [poly order]
+  (let [tape (gensym)]
+    `(do
+       (def ~tape (agent (i/int-map)))
+       (anti-pdiff ~poly ~tape ~order)
        (pprint @~tape))))
 
 (defmacro print-map [map]
