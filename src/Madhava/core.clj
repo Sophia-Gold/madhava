@@ -109,6 +109,43 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; MACROS
+
+(defmacro diff-once [poly order]
+  (let [tape (gensym)]
+    `(do
+       (def ~tape (atom (i/int-map)))
+       (diff ~poly ~tape ~order)
+       @~tape)))
+
+(defmacro anti-diff-once [poly order]
+  (let [tape (gensym)]
+    `(do
+       (def ~tape (atom (i/int-map)))
+       (anti-diff ~poly ~tape ~order)
+       @~tape)))
+
+(defmacro pdiff-once [poly order]
+  (let [tape (gensym)]
+    `(do
+       (def ~tape (agent (i/int-map)))
+       (pdiff ~poly ~tape ~order)
+       @~tape)))
+
+(defmacro anti-pdiff-once [poly order]
+  (let [tape (gensym)]
+    `(do
+       (def ~tape (agent (i/int-map)))
+       (anti-pdiff ~poly ~tape ~order)
+       @~tape)))
+
+(defmacro print-map [map]
+  `(pprint @~map
+           (clojure.java.io/writer
+            (str (quote ~map) ".txt"))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;; HELPER FUNCTIONS
 
 (defn add-dim [poly dim]
@@ -196,45 +233,75 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; VECTOR OPERATIONS
-
-(defn linear-transform [m [weight1 key1] [weight2 key2]]
-  (mul
-   (scale (get @m key1) weight1)
-   (scale (get @m key2) weight2)))
-
-(defn grad []
-  )
-
-(defn div []
-  )
-
-(defn curl []
-  )
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 ;; MAP FUNCTIONS
 
-(defn search-map [val map]
-  (select [MAP-VALS #(= % val)] @map))
+(defn search-map-1 [map val]
+  (into (i/int-map)
+        (select [ALL (fn [[k v]] (= v val))] map)))
 
 ;; filter empty vectors
 (defn denull-map [map]
-  (setval [MAP-VALS #(= [] %)] NONE @map))
+  (setval [MAP-VALS #(= [] %)] NONE map))
 
-(defn map-to-seq [map]
-  (select [MAP-VALS #(not= [] %)] @map))
+(defn transform-map [map f]
+  (transform MAP-VALS f map))
 
 (defn add-maps [map1 map2]
-  (merge-with add @map1 @map2))
+  (merge-with add map1 map2))
 
 (defn mul-maps [map1 map2]
-  (merge-with mul @map1 @map2))
+  (merge-with mul map1 map2))
 
-(defn transform-map [f map]
-  (transform MAP-VALS f @map))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; VECTOR OPERATIONS
+
+(defn jacobian [f]
+  (vals
+   (filter (fn [[k v]]
+             (and (> k 9) (< k 100)))
+           (diff-once f 1))))
+
+(defn jacobian-indexed [f]
+  (filter (fn [[k v]]
+            (and (> k 9) (< k 100)))
+          (diff-once f 1)))
+
+(defn hessian [f]
+  (vals
+   (filter (fn [[k v]]
+             (and (> k 99) (< k 1000)))
+           (diff-once f 2))))
+
+(defn hessian-indexed [f]
+  (filter (fn [[k v]]
+            (and (> k 99) (< k 1000)))
+          (diff-once f 2)))
+
+(defn grad [f]
+  (reduce add (jacobian f)))   
+
+(defn div [f vector]
+  (reduce add
+          (map #(scale %1 %2) (jacobian f) vector)))
+
+(defn curl [f v]
+  (let [j (jacobian f)
+        j-idx (map-indexed #(vector %1 %2) j)
+        v-idx (map-indexed #(vector %1 %2) v)]
+    (reduce add
+            (concat
+             (for [partial j-idx
+                   scalar v-idx
+                   :when (= (inc (first partial)) (first scalar))]
+               (scale (second partial) (second scalar)))
+             (vector (scale (last j) (first v)))
+             (for [partial j-idx
+                   scalar v-idx
+                   :when (= (first partial) (inc (first scalar)))]
+               (scale (second partial) (- (second scalar))))
+             (vector (scale (first j) (- (last v))))))))
+  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; TAYLOR SERIES
@@ -284,41 +351,6 @@
        (lazy-cat [1])))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; MACROS
-
-(defmacro diff-once [poly order]
-  (let [tape (gensym)]
-    `(do
-       (def ~tape (atom (i/int-map)))
-       (diff ~poly ~tape ~order)
-       (pprint @~tape))))
-
-(defmacro anti-diff-once [poly order]
-  (let [tape (gensym)]
-    `(do
-       (def ~tape (atom (i/int-map)))
-       (anti-diff ~poly ~tape ~order)
-       (pprint @~tape))))
-
-(defmacro pdiff-once [poly order]
-  (let [tape (gensym)]
-    `(do
-       (def ~tape (agent (i/int-map)))
-       (pdiff ~poly ~tape ~order)
-       (pprint @~tape))))
-
-(defmacro anti-pdiff-once [poly order]
-  (let [tape (gensym)]
-    `(do
-       (def ~tape (agent (i/int-map)))
-       (anti-pdiff ~poly ~tape ~order)
-       (pprint @~tape))))
-
-(defmacro print-map [map]
-  `(pprint @~map
-           (clojure.java.io/writer
-            (str (quote ~map) ".txt"))))
 
 (defn -main []
   )
