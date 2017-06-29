@@ -1,5 +1,6 @@
 (ns Madhava.core
   (:require [clojure.pprint :refer [pprint]]
+            [clojure.string :as str]
             [clojure.data.int-map :as i]
             [com.rpl.specter :refer :all]))
 
@@ -7,10 +8,17 @@
 
 ;; DIFFERENTIATION & INTEGRATION
 
+(defn vec-to-int [v]
+  (Long/parseLong (apply str v)))
+
+(defn int-to-vec [i]
+  (mapv #(Long/parseLong %)
+         (str/split (str i) #"")))
+
 (defn diff [poly tape order]
   (letfn [(partial-diff [poly tape idx]
             (let [i (peek idx)
-                  key (Long/parseLong (apply str idx))
+                  key (vec-to-int idx)
                   partial (vec
                            (for [expr poly
                                  :let [v (get expr i)]
@@ -35,7 +43,7 @@
 (defn anti-diff [poly tape order]
   (letfn [(partial-int [poly tape idx]
             (let [i (peek idx)
-                  key (Long/parseLong (apply str idx))
+                  key (vec-to-int idx)
                   partial (vec
                            (for [expr poly
                                  :let [v (get expr i)]
@@ -60,7 +68,7 @@
 (defn pdiff [poly tape order]
   (letfn [(partial-diff [poly tape idx]
             (let [i (peek idx)
-                  key (Long/parseLong (apply str idx))
+                  key (vec-to-int idx)
                   partial (vec
                            (for [expr poly
                                  :let [v (get expr i)]
@@ -85,7 +93,7 @@
 (defn anti-pdiff [poly tape order]
   (letfn [(partial-int [poly tape idx]
             (let [i (peek idx)
-                  key (Long/parseLong (apply str idx))
+                  key (vec-to-int idx)
                   partial (vec
                            (for [expr poly
                                  :let [v (get expr i)]
@@ -196,27 +204,42 @@
 
 ;; ARITHMETIC
 
-(defn add [poly1 poly2]
-  (sort-terms
-   (denull
-    (union (intersection poly1 poly2) poly1 poly2))))
+(defn add
+  ([] [])
+  ([poly] poly)
+  ([poly1 poly2]
+   (sort-terms
+    (denull
+     (union (intersection poly1 poly2) poly1 poly2))))
+  ([poly1 poly2 & more]
+   (reduce add (add poly1 poly2) more)))
 
-(defn sub [poly1 poly2]
-  (add poly1 (negate poly2)))
+(defn sub
+  ([] [])
+  ([poly] (negate poly))
+  ([poly1 poly2]
+   (add poly1 (negate poly2)))
+  ([poly1 poly2 & more]
+   (reduce sub (add poly1 (negate poly2)) more)))
 
 (defn scale [poly scalar]
   (mapv #(update % 0 * scalar) poly))
 
-(defn mul [poly1 poly2]
-  (simplify
-   (sort-terms
-    (for [term1 poly1
-          term2 poly2
-          :let [coeff (* (first term1) (first term2))]]
-      (vec
-       (cons coeff
-             (for [idx (range 1 (count (first poly1)))]
-               (+ (get term1 idx) (get term2 idx)))))))))
+(defn mul
+  ([] [])
+  ([poly] poly)
+  ([poly1 poly2]
+   (simplify
+    (sort-terms
+     (for [term1 poly1
+           term2 poly2
+           :let [coeff (* (first term1) (first term2))]]
+       (vec
+        (cons coeff
+              (for [idx (range 1 (count (first poly1)))]
+                (+ (get term1 idx) (get term2 idx)))))))))
+  ([poly1 poly2 & more]
+   (reduce mul (mul poly1 poly2) more)))
 
 (defn compose [f g var]
   (loop [f f
@@ -235,7 +258,7 @@
 
 ;; MAP FUNCTIONS
 
-(defn search-map-1 [map val]
+(defn search-map [map val]
   (into (i/int-map)
         (select [ALL (fn [[k v]] (= v val))] map)))
 
@@ -243,65 +266,57 @@
 (defn denull-map [map]
   (setval [MAP-VALS #(= [] %)] NONE map))
 
+(defn vec-keys [map]
+  (transform ALL (fn [[k v]] [(last (int-to-vec k)) v]) map))
+
 (defn transform-map [map f]
   (transform MAP-VALS f map))
 
-(defn add-maps [map1 map2]
-  (merge-with add map1 map2))
+(defn add-maps [& maps]
+  (apply merge-with add maps))
 
-(defn mul-maps [map1 map2]
-  (merge-with mul map1 map2))
+(defn mul-maps [& maps]
+  (apply merge-with mul maps))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; VECTOR OPERATIONS
 
 (defn jacobian [f]
-  (vals
-   (filter (fn [[k v]]
-             (and (> k 9) (< k 100)))
-           (diff-once f 1))))
-
-(defn jacobian-indexed [f]
   (filter (fn [[k v]]
             (and (> k 9) (< k 100)))
           (diff-once f 1)))
 
 (defn hessian [f]
-  (vals
-   (filter (fn [[k v]]
-             (and (> k 99) (< k 1000)))
-           (diff-once f 2))))
-
-(defn hessian-indexed [f]
   (filter (fn [[k v]]
             (and (> k 99) (< k 1000)))
           (diff-once f 2)))
 
 (defn grad [f]
-  (reduce add (jacobian f)))   
+  (vals
+   (jacobian f)))
 
 (defn div [f vector]
-  (reduce add
-          (map #(scale %1 %2) (jacobian f) vector)))
+  (apply add
+         (map #(scale %1 %2) (vals (jacobian f)) vector)))
 
 (defn curl [f v]
-  (let [j (jacobian f)
+  (let [j (vals (jacobian f))
         j-idx (map-indexed #(vector %1 %2) j)
         v-idx (map-indexed #(vector %1 %2) v)]
-    (reduce add
-            (concat
-             (for [partial j-idx
-                   scalar v-idx
-                   :when (= (inc (first partial)) (first scalar))]
-               (scale (second partial) (second scalar)))
-             (vector (scale (last j) (first v)))
-             (for [partial j-idx
-                   scalar v-idx
-                   :when (= (first partial) (inc (first scalar)))]
-               (scale (second partial) (- (second scalar))))
-             (vector (scale (first j) (- (last v))))))))
-  
+    (apply add
+           (concat
+            (for [partial j-idx
+                  scalar v-idx
+                  :when (= (inc (first partial)) (first scalar))]
+              (scale (second partial) (second scalar)))
+            (vector (scale (last j) (first v)))
+            (for [partial j-idx
+                  scalar v-idx
+                  :when (= (first partial) (inc (first scalar)))]
+              (scale (second partial) (- (second scalar))))
+            (vector (scale (first j) (- (last v))))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; TAYLOR SERIES
