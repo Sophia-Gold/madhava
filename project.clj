@@ -5,6 +5,7 @@
   :dependencies [[org.clojure/clojure "1.9.0-alpha14"]
                  [org.clojure/data.int-map "0.2.4"]
                  [com.rpl/specter "1.0.1"]
+                 [org.clojure/tools.nrepl "0.2.12"]
                  [criterium "0.4.4"]]
   :main ^:skip-aot Madhava.core
   :target-path "target/%s"

@@ -8,7 +8,7 @@
 
 Madhava is a Clojure library for [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and integration of partial differential equations. As opposed to many other functional AD libraries, Madhava takes a stream processing approach by generating all partials up to a given order at once and storing them in integer-keyed radix tries. As functions are represented as dense collections of n-tuples stored in Clojure vectors, this approach is both simple and extremely fast: capable of generating four orders of partial derivatives from hairy three dimensional functions in less than 0.5ms on commodity CPUs.
 
-Additional functions are included for basic arithmetic operations, linear transformations, functional composition, and several common Taylor series. Since partials can be composed after they've been generated as data (as opposed to using the language's built-in composition function) the chain rule can be applied in arbitrary order, making reverse and mixed mode as simple as forward mode&mdash;a major distinction compared to other AD packages.
+Additional functions are included for arithmetic operations, functional composition, divergence, gradients, curl, directional derivatives, Laplacians, and several common Taylor series. Since partials can be composed after they've been generated as data (as opposed to using the language's built-in composition function) the chain rule can be applied in arbitrary order, making reverse and mixed mode as simple as forward mode&mdash;a major distinction compared to other AD packages.
 
 Many thanks to Doug McIlroy for feedback and encouragement along the way. His [Power Serious](http://www.cs.dartmouth.edu/~doug/powser.html) package for Haskell will always be an inspiration for elegant software design.
 
@@ -47,7 +47,7 @@ Integrals:
 => (def diff-map (atom (i/int-map)))
 => (anti-diff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] diff-map 3)
 => (pprint int-map)
-{0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
+{1 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
  11 [[1 2 1] [3/2 2 0]],
  12 [[1 1 2] [5/2 0 2]],
  211 [[1/3 3 1] [1/2 3 0]],
@@ -63,7 +63,7 @@ Integrals:
  3221 [[1/6 2 3]],
  3222 [[1/12 1 4] [5/24 0 4]]}
 => (pprint (anti-diff-once [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 3))
-{0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
+{1 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
  11 [[1 2 1] [3/2 2 0]],
  12 [[1 1 2] [5/2 0 2]],
  211 [[1/3 3 1] [1/2 3 0]],
@@ -86,7 +86,7 @@ Parallel (NOTE: usually slower unless using very high dimensions or heavy proces
 => (def diff-map (agent (i/int-map)))
 => (pdiff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] diff-map 2)
 => (pprint @diff-map)
-{0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
+{1 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
  11 [[2 0 1] [3 0 0]],
  12 [[2 1 0] [5 0 0]],
  211 [],
@@ -96,7 +96,7 @@ Parallel (NOTE: usually slower unless using very high dimensions or heavy proces
 => (def diff-map (agent (i/int-map)))
 => (anti-pdiff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] diff-map 3)
 => (pprint int-map)
-{0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
+{1 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
  11 [[1 2 1] [3/2 2 0]],
  12 [[1 1 2] [5/2 0 2]],
  211 [[1/3 3 1] [1/2 3 0]],
@@ -165,22 +165,31 @@ Gradient:
 => ([[20 3 3 3] [16 1 1 2] [5 0 0 0]] [[15 4 2 3] [8 2 0 2] [4 0 3 0]] [[15 4 3 2] [16 2 1 1] [6 0 0 2]])
 ```
 
+Laplacian:
+
+```
+=> (laplacian [[5 4 3 3] [8 2 1 2] [1 0 4 0] [2 0 0 3] [5 1 0 0]])
+;; (60(x^2)(y^3)(z^3) + 16y(z^2), 30(x^4)y(z^3) + 12(y^2), 30(x^4)(y^3)(z^1) + 16(x^2)y + 12z)
+=> ([[60 2 3 3] [16 0 1 2]] [[30 4 1 3] [12 0 2 0]] [[30 4 3 1] [16 2 1 0] [12 0 0 1]])
+```
+
 Divergence:
 
 ```
-=> (div [[5 4 3 3] [8 2 1 2] [1 0 4 0] [2 0 0 3] [5 1 0 0]] [1 2 3])
-;; 30(x^4)(y^3)(z^2) + 45(x^4)(y^3)(z^2) + 20(x^3)(y^3)(z^3) + 16(x^2)(z^2) + 48(x^2)yz + 16xy(z^2) + 8y^3 + 18z^2 + 5
-=> [[30 4 2 3] [45 4 3 2] [20 3 3 3] [16 2 0 2] [48 2 1 1] [16 1 1 2] [8 0 3 0] [18 0 0 2] [5 0 0 0]]
+;; f(x,y,z) = 5(x^4)(y^3)(z^3) + 8(x^2)y(z^2) + z^4
+=> (div '([[5 4 3 3]] [[8 2 1 2]] [[1 0 4 0]]))
+;; 100(x^7)(y^6)(z^6) + 64(x^4)y(z^4)
+=> [[100 7 6 6] [64 4 1 4]]
 ```
 
 Curl:
 
 ```
-=> (curl [[5 4 3 3] [8 2 1 2] [1 0 4 0] [2 0 0 3] [5 1 0 0]] [1 1 1])
-=> [] ;; 0
-=> (curl [[5 4 3 3] [8 2 1 2] [1 0 4 0] [2 0 0 3] [5 1 0 0]] [1 -1 1])
-;; 30(x^4)(y^3)(z^2) - 40(x^3)(y^3)(z^3) + 32(x^2)yz - 32xy(z^2) + 12z^2 -10
-=> [[30 4 3 2] [-40 3 3 3] [32 2 1 1] [-32 1 1 2] [12 0 0 2] [-10 0 0 0]]
+=> (curl '([[5 4 3 3]] [[5 4 3 3]] [[5 4 3 3]]))
+=> []
+=> (curl '([[5 4 3 3]] [[8 2 1 2]] [[1 0 4 0]]))
+;; 15(x^4)(y^3)(z^2) - 15(x^4)(y^2)(z^3) + 16(x^2)yz - 16xy(z^2) + 4y^3
+=> [[15 4 3 2] [-15 4 2 3] [-16 2 1 1] [16 1 1 2] [4 0 3 0]]
 ```
 
 Taylor Series:
