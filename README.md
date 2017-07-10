@@ -6,7 +6,7 @@
 
 ---
 
-Madhava is a Clojure library for [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and integration of partial differential equations. As opposed to many other functional AD libraries, Madhava takes a stream processing approach by generating all partials up to a given order at once and storing them in integer-keyed radix tries. As functions are represented as dense collections of n-tuples stored in Clojure vectors, this approach is both simple and extremely fast: capable of generating four orders of partial derivatives from hairy three dimensional functions in less than 0.5ms on commodity CPUs.
+Madhava is a Clojure library for [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and integration of partial differential equations. As opposed to many other functional AD libraries, Madhava takes a stream processing approach by generating all partials up to a given order at once and storing them in integer-keyed radix tries. As functions are represented as dense collections of n-tuples stored in Clojure vectors, this approach is both simple and extremely fast: capable of generating four orders of partial derivatives from hairy three dimensional functions in ~0.2ms on commodity CPUs.
 
 Additional functions are included for arithmetic operations, functional composition, divergence, gradients, curl, directional derivatives, Laplacians, and several common Taylor series. Since partials can be composed after they've been generated as data (as opposed to using the language's built-in composition function) the chain rule can be applied in arbitrary order, making reverse and mixed mode as simple as forward mode&mdash;a major distinction compared to other AD packages.
 
@@ -20,18 +20,7 @@ Generating partial derivatives:
 
 ```
 ;; 2xy + 3x + 5y + 7
-=> (def diff-map (atom (i/int-map)))
-=> (diff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] diff-map 2)
-=> (pprint @diff-map)
-{0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
- 11 [[2 0 1] [3 0 0]],
- 12 [[2 1 0] [5 0 0]],
- 211 [],
- 212 [[2 0 0]],
- 221 [[2 0 0]],
- 222 []}
-;; or in one shot:
-=> (pprint (diff-once [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 2))
+=> (pprint (diff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 2))
 {0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
  11 [[2 0 1] [3 0 0]],
  12 [[2 1 0] [5 0 0]],
@@ -44,25 +33,7 @@ Generating partial derivatives:
 Integrals:
 
 ```
-=> (def diff-map (atom (i/int-map)))
-=> (anti-diff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] diff-map 3)
-=> (pprint int-map)
-{1 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
- 11 [[1 2 1] [3/2 2 0]],
- 12 [[1 1 2] [5/2 0 2]],
- 211 [[1/3 3 1] [1/2 3 0]],
- 212 [[1/2 2 2]],
- 221 [[1/2 2 2]],
- 222 [[1/3 1 3] [5/6 0 3]],
- 3111 [[1/12 4 1] [1/8 4 0]],
- 3112 [[1/6 3 2]],
- 3121 [[1/6 3 2]],
- 3122 [[1/6 2 3]],
- 3211 [[1/6 3 2]],
- 3212 [[1/6 2 3]],
- 3221 [[1/6 2 3]],
- 3222 [[1/12 1 4] [5/24 0 4]]}
-=> (pprint (anti-diff-once [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 3))
+=> (pprint (anti-diff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 3))
 {1 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
  11 [[1 2 1] [3/2 2 0]],
  12 [[1 1 2] [5/2 0 2]],
@@ -83,9 +54,7 @@ Integrals:
 Parallel (NOTE: usually slower unless using very high dimensions or heavy processing):
 
 ```
-=> (def diff-map (agent (i/int-map)))
-=> (pdiff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] diff-map 2)
-=> (pprint @diff-map)
+=> (pprint (pdiff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 2))
 {1 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
  11 [[2 0 1] [3 0 0]],
  12 [[2 1 0] [5 0 0]],
@@ -93,9 +62,7 @@ Parallel (NOTE: usually slower unless using very high dimensions or heavy proces
  212 [[2 0 0]],
  221 [[2 0 0]],
  222 []}
-=> (def diff-map (agent (i/int-map)))
-=> (anti-pdiff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] diff-map 3)
-=> (pprint int-map)
+=> (pprint (anti-pdiff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 3))
 {1 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
  11 [[1 2 1] [3/2 2 0]],
  12 [[1 1 2] [5/2 0 2]],
@@ -159,18 +126,18 @@ Composition:
 Gradient:
 
 ```
-;; f = 5(x^4)(y^3)(z^3) + 8(x^2)y(z^2) + y^4 + 2z^3 + 5
-=> (grad [[5 4 3 3] [8 2 1 2] [1 0 4 0] [2 0 0 3] [5 1 0 0]])
-;; (20(x^3)(y^3)(z^3) + 16xy(z^2) + 5, 15(x^4)(y^2)(z^3) + 8(x^2)(z^2) + 4y^3, 15(x^4)(y^2)(z^3) + 16(x^2)yz + 6z^2)
-=> ([[20 3 3 3] [16 1 1 2] [5 0 0 0]] [[15 4 2 3] [8 2 0 2] [4 0 3 0]] [[15 4 3 2] [16 2 1 1] [6 0 0 2]])
+;; f = 8(x^2)y(z^2) + y^4 + 2z^3 + 5x
+=> (grad [[8 2 1 2] [1 0 4 0] [2 0 0 3] [5 1 0 0]])
+;; (16xyz^2 + 5, 8(x^2)(y^2) + 4y^3, 12(x^2)yz + 6z^2
+=> ([[16 1 1 2] [5 0 0 0]] [[8 2 0 2] [4 0 3 0]] [[16 2 1 1] [6 0 0 2]])
 ```
 
 Laplacian:
 
 ```
-=> (laplacian [[5 4 3 3] [8 2 1 2] [1 0 4 0] [2 0 0 3] [5 1 0 0]])
-;; (60(x^2)(y^3)(z^3) + 16y(z^2), 30(x^4)y(z^3) + 12(y^2), 30(x^4)(y^3)(z^1) + 16(x^2)y + 12z)
-=> ([[60 2 3 3] [16 0 1 2]] [[30 4 1 3] [12 0 2 0]] [[30 4 3 1] [16 2 1 0] [12 0 0 1]])
+=> (laplacian [[8 2 1 2] [1 0 4 0] [2 0 0 3] [5 1 0 0]])
+;; (16yz^2, 12y^2, 12(x^2)y + 12z)
+=> ([[16 0 1 2]] [[12 0 2 0]] [[16 2 1 0] [12 0 0 1]])
 ```
 
 Divergence:
@@ -217,9 +184,7 @@ Taylor Series:
 Printing to a text file:
 
 ```
-=> (def diff-map (atom (i/int-map)))
-=> (diff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] diff-map 2)
-=> (print-map diff-map)
+=> (print-tape "my_derivatives" (diff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 2))
 ```
 
 Benchmarking:
@@ -227,11 +192,11 @@ Benchmarking:
 ```
 ;; 3 dimensions, 5 terms, 4 orders tested on 2.6GHz Core i7 
 => (use 'criterium.core)
-=> (quick-bench (doall (diff [[5 4 3 3] [8 2 1 2] [1 0 4 0] [2 0 0 3] [5 1 0 0]] (atom (i/int-map)) 4)))
-Evaluation count : 1848 in 6 samples of 308 calls.
-             Execution time mean : 326.552184 µs
-    Execution time std-deviation : 7.665505 µs
-   Execution time lower quantile : 318.624896 µs ( 2.5%)
-   Execution time upper quantile : 337.507200 µs (97.5%)
-                   Overhead used : 7.373353 ns
+=> (bench (diff [[5 4 3 3] [8 2 1 2] [1 0 4 0] [2 0 0 3] [5 1 0 0]] 4))
+Evaluation count : 292920 in 60 samples of 4882 calls.
+             Execution time mean : 203.020243 µs
+    Execution time std-deviation : 2.783907 µs
+   Execution time lower quantile : 200.303023 µs ( 2.5%)
+   Execution time upper quantile : 209.796772 µs (97.5%)
+                   Overhead used : 7.213580 ns
 ```
