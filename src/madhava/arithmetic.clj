@@ -86,3 +86,70 @@
           (conj (vector (Math/sqrt (first v)))
                 (mapv #(/ % 2) v)))
         f))
+
+(defn compl [term1 term2] 
+  (map (fn [x y]
+         (let [lcm (max x y)]
+           (if (> lcm x)
+             (- lcm x)
+             0)))
+       term1
+       term2))
+
+(defn s-poly [f g]
+  (let [f-vars (nfirst f)
+        g-vars (nfirst g)]
+    (sub
+     (mul [(vec (cons 1 (compl f-vars g-vars)))]
+          f)
+     (mul [(vec (cons (/ (ffirst f) (ffirst g))
+                      (compl g-vars f-vars)))]
+          g))))
+
+(defn normal-form [f g]
+  (loop [f f]
+    (let [s 
+             (for [f f
+                   g g
+                   :let [s g]
+                   :when (= [true]
+                            (distinct
+                             (map #(or (zero? %2)
+                                       (and (not= 0 %2) (<= %2 %1)))
+                                  (next f)
+                                  (next g))))]
+               [s])]
+      (cond
+        (empty? f) []
+        (empty? s) f
+        :else (recur (s-poly f (first s)))))))
+
+;; (defn product? [f g]
+;;   (= [true]
+;;      (distinct
+;;       (map #(or (and (zero? %1) (not= 0 %2))
+;;                 (and (not= 0 %1) (zero? %2)))
+;;            (next f) (next g)))))
+
+;; (defn groebner [f g]
+;;   (let [s (for [f-term g
+;;                 g-term g
+;;                 :when (and (not= f-term g-term)
+;;                            (not (product? f-term g-term)))]
+;;             [f-term g-term])]
+;;     (letfn [(groebner-loop [f s]
+;;               (let [nf (normal-form (s-poly [(ffirst s)]
+;;                                            (vec (nfirst s)))
+;;                                     f)]
+;;                 (cond
+;;                   (empty s) f
+;;                   (empty? (next s)) (do (println 1)
+;;                                         (groebner-loop f (first s)))
+;;                   (empty? nf) (do (println 1)
+;;                                   (groebner-loop f (next s)))
+;;                   :else (do (println 2)
+;;                             (groebner-loop (vec (concat nf f))
+;;                                            (concat (next s) (for [new-s f
+;;                                                                   :when (not (product? nf new-s))]
+;;                                                               [nf new-s])))))))]
+;;       (groebner-loop f s))))

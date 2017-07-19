@@ -6,7 +6,7 @@
 
 ---
 
-Madhava is a Clojure library for [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and integration of partial differential equations. As opposed to many other functional AD libraries, Madhava takes a stream processing approach by generating all partials up to a given order at once and storing them in integer-keyed radix tries. As functions are represented as dense collections of n-tuples stored in Clojure vectors, this approach is both simple and extremely fast: capable of generating four orders of partial derivatives from hairy three dimensional functions in ~0.2ms on commodity CPUs.
+Madhava is a Clojure library for [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and integration of partial differential equations. As opposed to many other functional AD libraries, Madhava takes a stream processing approach by generating all partials up to a given order at once and storing them in integer-keyed radix tries. As functions are represented as dense collections of n-tuples stored in Clojure vectors, this approach is both simple and extremely fast: capable of generating four orders of partial derivatives from hairy three dimensional functions in ~0.1ms on commodity CPUs.
 
 Additional functions are included for arithmetic operations, functional composition, divergence, gradients, curl, directional derivatives, Laplacians, and several common Taylor series. Since partials can be composed after they've been generated as data (as opposed to using the language's built-in composition function) the chain rule can be applied in arbitrary order, making reverse and mixed mode as simple as forward mode&mdash;a major distinction compared to other AD packages.
 
@@ -21,13 +21,13 @@ Generating partial derivatives:
 ```
 ;; 2xy + 3x + 5y + 7
 => (pprint (diff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 2))
-{0 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
+{1 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
  11 [[2 0 1] [3 0 0]],
  12 [[2 1 0] [5 0 0]],
- 211 [],
- 212 [[2 0 0]],
- 221 [[2 0 0]],
- 222 []}
+ 111 [],
+ 112 [[2 0 0]],
+ 121 [[2 0 0]],
+ 122 []}
 ```
 
 Integrals:
@@ -37,18 +37,18 @@ Integrals:
 {1 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
  11 [[1 2 1] [3/2 2 0]],
  12 [[1 1 2] [5/2 0 2]],
- 211 [[1/3 3 1] [1/2 3 0]],
- 212 [[1/2 2 2]],
- 221 [[1/2 2 2]],
- 222 [[1/3 1 3] [5/6 0 3]],
- 3111 [[1/12 4 1] [1/8 4 0]],
- 3112 [[1/6 3 2]],
- 3121 [[1/6 3 2]],
- 3122 [[1/6 2 3]],
- 3211 [[1/6 3 2]],
- 3212 [[1/6 2 3]],
- 3221 [[1/6 2 3]],
- 3222 [[1/12 1 4] [5/24 0 4]]}
+ 111 [[1/3 3 1] [1/2 3 0]],
+ 112 [[1/2 2 2]],
+ 121 [[1/2 2 2]],
+ 122 [[1/3 1 3] [5/6 0 3]],
+ 1111 [[1/12 4 1] [1/8 4 0]],
+ 1112 [[1/6 3 2]],
+ 1121 [[1/6 3 2]],
+ 1122 [[1/6 2 3]],
+ 1211 [[1/6 3 2]],
+ 1212 [[1/6 2 3]],
+ 1221 [[1/6 2 3]],
+ 1222 [[1/12 1 4] [5/24 0 4]]}
 ```
 
 Parallel (NOTE: usually slower unless using very high dimensions or heavy processing):
@@ -58,26 +58,26 @@ Parallel (NOTE: usually slower unless using very high dimensions or heavy proces
 {1 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
  11 [[2 0 1] [3 0 0]],
  12 [[2 1 0] [5 0 0]],
- 211 [],
- 212 [[2 0 0]],
- 221 [[2 0 0]],
- 222 []}
+ 111 [],
+ 112 [[2 0 0]],
+ 121 [[2 0 0]],
+ 122 []}
 => (pprint (anti-pdiff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 3))
 {1 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
  11 [[1 2 1] [3/2 2 0]],
  12 [[1 1 2] [5/2 0 2]],
- 211 [[1/3 3 1] [1/2 3 0]],
- 212 [[1/2 2 2]],
- 221 [[1/2 2 2]],
- 222 [[1/3 1 3] [5/6 0 3]],
- 3111 [[1/12 4 1] [1/8 4 0]],
- 3112 [[1/6 3 2]],
- 3121 [[1/6 3 2]],
- 3122 [[1/6 2 3]],
- 3211 [[1/6 3 2]],
- 3212 [[1/6 2 3]],
- 3221 [[1/6 2 3]],
- 3222 [[1/12 1 4] [5/24 0 4]]}
+ 111 [[1/3 3 1] [1/2 3 0]],
+ 112 [[1/2 2 2]],
+ 121 [[1/2 2 2]],
+ 122 [[1/3 1 3] [5/6 0 3]],
+ 1111 [[1/12 4 1] [1/8 4 0]],
+ 1112 [[1/6 3 2]],
+ 1121 [[1/6 3 2]],
+ 1122 [[1/6 2 3]],
+ 1211 [[1/6 3 2]],
+ 1212 [[1/6 2 3]],
+ 1221 [[1/6 2 3]],
+ 1222 [[1/12 1 4] [5/24 0 4]]}
 ```
 
 Arithmetic (NOTE: output is in graded lexicographic order):
@@ -140,23 +140,23 @@ Laplacian:
 => ([[16 0 1 2]] [[12 0 2 0]] [[16 2 1 0] [12 0 0 1]])
 ```
 
-Divergence:
+Divergence (in Cartesian coordinates):
 
 ```
-;; f(x,y,z) = 5(x^4)(y^3)(z^3) + 8(x^2)y(z^2) + z^4
+;; f(x,y,z) = 5(x^4)(y^3)(z^3) + 8(x^2)y(z^2) + y^4
 => (div '([[5 4 3 3]] [[8 2 1 2]] [[1 0 4 0]]))
-;; 100(x^7)(y^6)(z^6) + 64(x^4)y(z^4)
-=> [[100 7 6 6] [64 4 1 4]]
+;; (20(x^3)(y^3)(z^3), 8(x^2)(z^2), 0)
+=> ([[20 3 3 3]] [[8 2 0 2]] [])
 ```
 
-Curl:
+Curl (in Cartesian coordinates):
 
 ```
 => (curl '([[5 4 3 3]] [[5 4 3 3]] [[5 4 3 3]]))
 => []
 => (curl '([[5 4 3 3]] [[8 2 1 2]] [[1 0 4 0]]))
-;; 15(x^4)(y^3)(z^2) - 15(x^4)(y^2)(z^3) + 16(x^2)yz - 16xy(z^2) + 4y^3
-=> [[15 4 3 2] [-15 4 2 3] [-16 2 1 1] [16 1 1 2] [4 0 3 0]]
+;; (- 16xy(z^2) + 4y^3, 15(x^4)(y^3)(z^2) - 15(x^4)(y^2)(z^3), 16(x^2)yz)
+=> ([[-16 2 1 1] [4 0 3 0]] [[15 4 3 2]] [[-15 4 2 3] [16 1 1 2]])
 ```
 
 Taylor Series:
@@ -193,10 +193,10 @@ Benchmarking:
 ;; 3 dimensions, 5 terms, 4 orders tested on 2.6GHz Core i7 
 => (use 'criterium.core)
 => (bench (diff [[5 4 3 3] [8 2 1 2] [1 0 4 0] [2 0 0 3] [5 1 0 0]] 4))
-Evaluation count : 292920 in 60 samples of 4882 calls.
-             Execution time mean : 203.020243 µs
-    Execution time std-deviation : 2.783907 µs
-   Execution time lower quantile : 200.303023 µs ( 2.5%)
-   Execution time upper quantile : 209.796772 µs (97.5%)
-                   Overhead used : 7.213580 ns
+Evaluation count : 552540 in 60 samples of 9209 calls.
+             Execution time mean : 108.857714 µs
+    Execution time std-deviation : 1.092826 µs
+   Execution time lower quantile : 107.648204 µs ( 2.5%)
+   Execution time upper quantile : 111.676714 µs (97.5%)
+                   Overhead used : 1.732578 ns
 ```
