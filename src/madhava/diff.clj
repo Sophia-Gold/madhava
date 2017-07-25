@@ -101,15 +101,7 @@
       (persistent! @*tape*))))
 
 (defn vector-diff [vf order]
-  (apply merge
-         (map-indexed
-          (fn [idx tape]
-            (transform ALL (fn [[k v]]
-                             [(if (> k 10)
-                                (+ k (* 10 idx))
-                                k)
-                              v]) tape))
-         (pmap #(diff % order) vf))))
+  (pmap #(diff % order) vf))
 
 (defn vector-antidiff [vf order]
   (apply merge

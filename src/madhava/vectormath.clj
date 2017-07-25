@@ -29,9 +29,9 @@
    (jacobian f)))
 
 (defn div [f]
-  (let [all-partials (vector-diff f 1)]
-    (map #(get all-partials (+ (* 10 %) %))
-         (range 1 (inc (count f))))))
+  (map #(get %1 (+ 10 %2))
+       (vector-diff f 1)
+       (range 1 (inc (count (ffirst f))))))
 
 (defn curl [f]
   (let [vars (count f)
@@ -39,14 +39,16 @@
         range2 (range (dec vars) (+ vars (dec vars)))
         partials (vector-diff f 1)
         partials-1 (mapv (fn [r1 r2]
-                           (get partials
-                                (+ (* 10 (inc (mod r2 vars)))
-                                   (inc (mod r1 vars)))))
-                         range1
-                         range2)
+                           (get (nth partials
+                                     (mod r1 vars))
+                                (+ 10
+                                   (inc (mod r2 vars)))))
+                         range2
+                         range1)
         partials-2 (mapv (fn [r1 r2]
-                           (get partials
-                                (+ (* 10 (inc (mod r1 vars)))
+                           (get (nth partials
+                                     (mod r1 vars))
+                                (+ 10
                                    (inc (mod r2 vars)))))
                          range1
                          range2)]
