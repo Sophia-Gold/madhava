@@ -8,7 +8,7 @@
 
 Madhava is a Clojure library for [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and integration of partial differential equations. As opposed to many other functional AD libraries, Madhava takes a stream processing approach by generating all partials up to a given order at once and storing them in integer-keyed radix tries. As functions are represented as dense collections of n-tuples stored in Clojure vectors, this approach is both simple and extremely fast: capable of generating four orders of partial derivatives from hairy three dimensional functions in ~0.1ms on commodity CPUs.
 
-Additional functions are included for arithmetic operations, functional composition, divergence, gradients, curl, directional derivatives, Laplacians, and several common Taylor series. Since partials can be composed after they've been generated as data (as opposed to using the language's built-in composition function) the chain rule can be applied in arbitrary order, making reverse and mixed mode as simple as forward mode&mdash;a major distinction compared to other AD packages.
+Additional functions are included for arithmetic operations, functional composition, divergence, gradients, curl, directional derivatives, normal vectors, Laplacians, and several common Taylor series. Since functions can be composed after they've been generated as data (as opposed to using Clojure's built-in composition function) the chain rule can be applied in arbitrary order, making reverse and mixed mode as simple as forward mode&mdash;a major distinction compared to other AD packages.
 
 Many thanks to Doug McIlroy for feedback and encouragement along the way. His [Power Serious](http://www.cs.dartmouth.edu/~doug/powser.html) package for Haskell will always be an inspiration for elegant software design.
 
@@ -108,6 +108,13 @@ Arithmetic (NOTE: output is in graded lexicographic order):
 ;; = 2x^3y^2 + 3x^3y + 5x^2y^2 + 15x^2y + 2xy^2 + 12x^2 + 23xy + 5y^2 + 28x + 7y
 => (mul [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] [[1 2 1] [4 1 0] [1 0 1]])
 [[2 3 2] [3 3 1] [5 2 2] [15 2 1] [2 1 2] [12 2 0] [23 1 1] [5 0 2] [28 1 0] [7 0 1]]
+
+;; (2xy + 3x + 5y + 7) / (2xy + 3x + 5y + 7) = 1 + (no remainder)
+=> (divide [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] [[2 1 1] [3 1 0] [5 0 1] [7 0 0]])
+=> ([[1 0 0]] [])
+;; (2xy + 3x + 5y + 7) / (xy + 7) = 5/7y + 1 + (3x / xy + 7)
+=> (divide [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] [[1 1 1] [7 0 0]])
+=> ([[5/7 0 1] [1 0 0]] [[3 1 0]])
 ```
 
 Composition:

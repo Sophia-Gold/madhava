@@ -8,12 +8,6 @@
    (apply add
           (mapv #(mul [%] [%]) v))))
 
-;; (defn normal [f]
-;;   (let [g (grad f)]
-;;     (divide
-;;      (apply add g)
-;;      (magnitude g))))
-
 (defn jacobian [f]
   (select [ALL (fn [[k v]]
                  (and (> k 9) (< k 100)))]
@@ -57,6 +51,12 @@
 (defn directional-diff [f n]
   (apply add
          (map #(scale %1 %2) (grad f) n)))
+
+(defn normal [f]
+  (let [g (grad f)]
+    (divide
+     (apply add g)
+     (magnitude g))))
 
 (defn laplacian [f]
   (let [all-partials (diff f 2)]
