@@ -6,30 +6,28 @@
 (defn negate-series [s]
   (map - s))
 
-(defn sparse-to-dense [s]
-  (vec
-   (rseq
-    (filterv some?
-             (mapv #(if (not= %1 0) [%1 %2]) s (range))))))
+(defn multi-to-univariate [poly var]
+  (->> poly
+       (map #(if (and (not= 0 (nth % var))
+                      (not= 0 (next %)))
+               (vector (first %) (nth % var))))
+       (filterv some?)))
 
-(defn dense-to-sparse [poly var]
-    (loop [poly poly
-           result []]
-      (let [term (first poly)
-            coeff (vector (first term))
-            rest (next poly)
-            next-term (first rest)]
-        (if (nil? (next rest))
-          (vec
-           (concat (repeat (nth (last poly) var) 0)
-                   (vector (first next-term))
-                   (repeat (- (dec (nth term var)) (nth next-term var)) 0)
-                   coeff
-                   result))
-          (recur rest
-                 (concat (repeat (- (dec (nth term var)) (nth next-term var)) 0)
-                         coeff
-                         result))))))
+(defn dense-to-sparse [s]
+  (->> s
+       (map-indexed #(if (not= %2 0) [%2 %1]))
+       (filterv some?)
+       (rseq)
+       (vec)))
+
+(defn sparse-to-dense [poly]
+  (let [poly (rseq poly)
+        diff-terms (map #(vector (first %1) (dec (- (second %1) (second %2))))
+                        (next poly) poly)]
+    (->> diff-terms
+         (cons (first poly))
+         (mapcat #(concat (repeat (second %) 0) [(first %)]))
+         (vec))))
       
 (defn exp-series []
   (->> (exp-series)

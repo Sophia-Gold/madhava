@@ -6,7 +6,7 @@
 
 ---
 
-Madhava is a Clojure library for [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and integration of partial differential equations. As opposed to many other functional AD libraries, Madhava takes a stream processing approach by generating all partials up to a given order at once and storing them in integer-keyed radix tries. As functions are represented as dense collections of n-tuples stored in Clojure vectors, this approach is both simple and extremely fast: capable of generating four orders of partial derivatives from hairy three dimensional functions in ~0.1ms on commodity CPUs.
+Madhava is a Clojure library for [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and integration of partial differential equations. As opposed to many other functional AD libraries, Madhava takes a stream processing approach by generating all partials up to a given order at once and storing them in integer-keyed radix tries. As functions are represented as collections of n-tuples stored in Clojure vectors, this approach is both simple and extremely fast: capable of generating four orders of partial derivatives from hairy three dimensional functions in ~0.1ms on commodity CPUs.
 
 Additional functions are included for arithmetic operations, functional composition, divergence, gradients, curl, directional derivatives, normal vectors, Laplacians, and several common Taylor series. Since functions can be composed after they've been generated as data (as opposed to using Clojure's built-in composition function) the chain rule can be applied in arbitrary order, making reverse and mixed mode as simple as forward mode&mdash;a major distinction compared to other AD packages.
 
@@ -167,22 +167,22 @@ Curl (in Cartesian coordinates):
 Taylor Series:
 
 ```
-=> (sparse-to-dense (take 10 (exp-series)))
+=> (dense-to-sparse (take 10 (exp-series)))
 [[1/362880 9] [1/40320 8] [1/5040 7] [1/720 6] [1/120 5] [1/24 4] [1/6 3] [1/2 2] [1 1] [1 0]]
 
-=> (sparse-to-dense (take 10 (sin-series)))
+=> (dense-to-sparse (take 10 (sin-series)))
 [[1/362880 9] [-1/5040 7] [1/120 5] [-1/6 3] [1 1]]
 
-=> (sparse-to-dense (take 10 (cos-series)))
+=> (dense-to-sparse (take 10 (cos-series)))
 [[1/40320 8] [-1/720 6] [1/24 4] [-1/2 2] [1 0]]
 
-=> (sparse-to-dense (take 10 (atan-series)))
+=> (dense-to-sparse (take 10 (atan-series)))
 [[1/9 8] [-1/7 6] [1/5 4] [-1/3 2] [1 0]]
 
-=> (sparse-to-dense (take 10 (sinh-series)))
+=> (dense-to-sparse (take 10 (sinh-series)))
 [[1/362880 9] [1/5040 7] [1/120 5] [1/6 3] [1 1]]
 
-=> (sparse-to-dense (take 10 (cosh-series)))
+=> (dense-to-sparse (take 10 (cosh-series)))
 [[1/40320 8] [1/720 6] [1/24 4] [1/2 2] [1 0]]
 ```
 
