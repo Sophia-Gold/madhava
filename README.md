@@ -1,4 +1,4 @@
-# Madhava v2
+# Madhava v2 [![Build Status](https://travis-ci.org/Sophia-Gold/Madhava-v2.svg?branch=master)](https://travis-ci.org/Sophia-Gold/Madhava-v2)
 
 >”Multiply the arc by the square of the arc, and take the result of repeating that (any number of times). Divide (each of the above numerators) by the squares of the successive even numbers increased by that number and multiplied by the square of the radius. Place the arc and the successive results so obtained one below the other, and subtract each from the one above. These together give the jiva, as collected together in the verse beginning with "vidvan" etc."
 
