@@ -1,61 +1,40 @@
-(ns madhava.arithmetic)
+(ns madhava.arithmetic
+  (:require [clojure.data.avl :refer [sorted-map-by]]))
 
-(defn add-dim [poly dim]
-  (mapv #(vec (concat (take dim %) [0] (drop dim %))) poly))
-
-(defn remove-terms [term poly]
-  (filterv #(not= (next term) (next %)) poly))
+(defn add-dim [poly]
+  ;; projects into next higher dimension by appending zero to tuples of variables
+  (->> poly
+       (map #(update % 0 conj 0))
+       (into {})))
 
 (defn denull [poly]
-  (filterv #(not= 0 (first %)) poly))
-
-(defn negate [poly]
-  (mapv #(update % 0 -) poly))
-
-(defn sort-terms [poly]
-;; graded lexicographic order
-  (vec
-   (sort-by #(- (reduce + (next %)))
-            (sort-by (comp - fnext) poly))))
-
-(defn union [intersection & sets]
-  (loop [i 0
-         test intersection
-         difference sets]
-    (if (> i (count intersection))
-      (into intersection (mapcat identity difference))
-      (recur (inc i) (next test) (mapv (partial remove-terms (first test)) difference)))))
-
-(defn intersection [poly1 poly2]
-  (vec
-   (for [term1 poly1
-         term2 poly2
-         :when (= (next term1) (next term2))]
-     (update term1 0 + (first term2)))))
-
-(defn simplify [poly]
-  (loop [idx 0
-         test poly
-         result []]
-    (if (> idx (dec (count poly)))
-      result
-      (if (= (nfirst test) (nfirst (next test)))
-        (recur (+ 2 idx) (nnext test)
-               (conj result (vec (cons (+ (ffirst test) (ffirst (next test))) (nfirst test)))))
-        (recur (inc idx) (next test) (conj result (first test)))))))
+  ;; major perf loss on `add` and `sub`
+  ;; try replacing with Specter macro?
+  (->> poly
+       (filter #(not= 0 (second %)))
+       (into {})))
 
 (defn add
-  ([] [])
-  ([poly] poly)
+  ;; transducer
+  ([poly1]  ;; completion
+   (fn
+     ([] poly1)
+     ([poly2] (add poly1 poly2))
+     ([poly2 & more] (add poly1 poly2 more))))
   ([poly1 poly2]
-   (sort-terms
-    (denull
-     (union (intersection poly1 poly2) poly1 poly2))))
+   (denull
+    (into (sorted-map-by (comp - compare))
+          (merge-with +' poly1 poly2))))
   ([poly1 poly2 & more]
    (reduce add (add poly1 poly2) more)))
 
+(defn negate [poly]
+  (->> poly
+       (map #(update % 1 -))
+       (into {})))
+
 (defn sub
-  ([] [])
+  ;; consistent with scalar subtraction: arity 1 negates polynomial rather than transducer
   ([poly] (negate poly))
   ([poly1 poly2]
    (add poly1 (negate poly2)))
@@ -63,34 +42,60 @@
    (reduce sub (add poly1 (negate poly2)) more)))
 
 (defn scale [poly scalar]
-  (mapv #(update % 0 * scalar) poly))
+  (->> poly
+       (map #(update % 1 * scalar))
+       (into {})))
 
 (defn mul
-  ([] [])
-  ([poly] poly)
+  ;; transducer
+  ([poly1]  ;; completion
+   (fn
+     ([] poly1)
+     ([poly2] (mul poly1 poly2))
+     ([poly2 & more] (mul poly1 poly2 more))))
   ([poly1 poly2]
-   (simplify
-    (sort-terms
-     (for [term1 poly1
-           term2 poly2
-           :let [coeff (* (first term1) (first term2))]]
-       (vec
-        (cons coeff
-              (for [idx (range 1 (count (first poly1)))]
-                (+ (get term1 idx) (get term2 idx)))))))))
+   (let [product (atom (transient (sorted-map-by (comp - compare))))]
+     (doall  ;; `for` is lazy so must to be forced for side-effects 
+      (for [term1 poly1
+            term2 poly2
+            :let [vars (mapv +' (key term1) (key term2))
+                  coeff (* (val term1) (val term2))]]
+        (if (get @product vars)  ;; `contains?` is broken for transients 
+          (swap! product assoc! vars (+ (get @product vars) coeff))  ;; `update` is broken for transients
+          (swap! product assoc! vars coeff))))
+     (persistent! @product)))
   ([poly1 poly2 & more]
    (reduce mul (mul poly1 poly2) more)))
 
-(defn sqrt [f]
-  (mapv (fn [v]
-          (conj (vector (Math/sqrt (first v)))
-                (mapv #(/ % 2) v)))
-        f))
+(defn pmul
+  ;; transducer
+  ([poly1]  ;; completion
+   (fn
+     ([] poly1)
+     ([poly2] (pmul poly1 poly2))
+     ([poly2 & more] (pmul poly1 poly2 more))))
+  ([poly1 poly2]
+   (let [*product* (agent (transient (sorted-map-by (comp - compare))))]
+     (dosync
+      (doall;; `for` is lazy so must to be forced for side-effects 
+       (for [term1 poly1
+             term2 poly2
+             :let [vars (mapv +' (key term1) (key term2))
+                   coeff (* (val term1) (val term2))]]
+         (if (get @*product* vars)  ;; `contains?` is broken for transients 
+           (send *product* assoc! vars (+ (get @*product* vars) coeff))  ;; `update` is broken for transients
+           (send *product* assoc! vars coeff)))))
+     (await *product*)
+     (persistent! @*product*)))
+  ([poly1 poly2 & more]
+   (reduce pmul (pmul poly1 poly2) more)))
 
-(defn gcd [a b]
-  (if (zero? b)
-    a
-    (recur b (mod a b))))
+(defn sqrt [poly]
+  (->> poly
+       (map (fn [v]
+              {(mapv #(/ % 2) (first v))
+               (Math/sqrt (second v))}))
+       (into {})))
 
 (defn compl [term1 term2] 
   (map (fn [x y]
@@ -100,33 +105,37 @@
            (>= x y) (- x y)))
        term1
        term2))
-
+     
 (defn s-poly [f g]
-  (let [f-vars (next f)
-        g-vars (next g)
+  (let [f-vars (first f)
+        g-vars (first g)
         lcm (compl f-vars g-vars)]
-    (if (= (distinct (map nil? lcm)) '(false))
-      (vec 
-       (cons (/ (first f) (first g))
-             lcm)))))
+    (if (not-any? nil? lcm)
+      {(vec lcm)
+       (/ (second f) (second g))})))
 
 (defn divide [f g]
+  ;; *not* transducer! binary only
+  ;; returns a tuple of quotient and remainder
+  ;; not the inverse of multiplication (welcome to computer algebra)
   (loop [f f
          g g
-          result []
-         remainder []]
-    (let [term1 (first f)
-          term2 (first g)
-          s-term (s-poly term1 term2)]
-      (if (empty? g)
-        (list (simplify (sort-terms result))
-              (filterv #(not (nil? %)) remainder))
+         result (transient (sorted-map-by (comp - compare)))
+         remainder {}]
+    (if (empty? f)
+      (list (persistent! result)
+            (->> remainder
+                 (filter #(not (nil? %)))
+                 (into (sorted-map-by (comp - compare)))))
+      (let [term1 (first f)
+            term2 (first g)
+            s-term (s-poly term1 term2)]
         (if (nil? s-term)
-          (recur (next f)
-                 (next g)
+          (recur (dissoc f (first term1))
+                 (dissoc g (first term2))
                  result
                  (conj remainder term1))
-          (recur (sub f (mul g [s-term]))
+          (recur (sub f (mul g s-term))  ;; replace with pmul
                  g
-                 (conj result s-term)
+                 (conj! result s-term)
                  remainder))))))

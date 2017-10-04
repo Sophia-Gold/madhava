@@ -6,28 +6,18 @@
 (defn negate-series [s]
   (map - s))
 
-(defn multi-to-univariate [poly var]
-  (->> poly
-       (map #(if (and (not= 0 (nth % var))
-                      (not= 0 (next %)))
-               (vector (first %) (nth % var))))
-       (filterv some?)))
-
 (defn dense-to-sparse [s]
   (->> s
-       (map-indexed #(if (not= %2 0) [%2 %1]))
+       (map-indexed #(if (not= %2 0) [%1 %2]))
        (filterv some?)
-       (rseq)
-       (vec)))
+       (into (sorted-map-by (comp - compare)))))
 
 (defn sparse-to-dense [poly]
-  (let [poly (rseq poly)
-        diff-terms (map #(vector (first %1) (dec (- (second %1) (second %2))))
-                        (next poly) poly)]
-    (->> diff-terms
-         (cons (first poly))
-         (mapcat #(concat (repeat (second %) 0) [(first %)]))
-         (vec))))
+  ;; only for univariate polys
+  (let [poly (into (sorted-map) poly)
+        order (keys poly)
+        diff-terms (concat (map #(dec (- %1 %2)) (next order) order) (list 0))]
+    (mapcat #(cons %2 (repeat %1 0)) diff-terms (vals poly))))
       
 (defn exp-series []
   (->> (exp-series)

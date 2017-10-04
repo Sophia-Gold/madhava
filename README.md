@@ -6,7 +6,7 @@
 
 ---
 
-Madhava is a Clojure library for [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and integration of partial differential equations. As opposed to many other functional AD libraries, Madhava takes a stream processing approach by generating all partials up to a given order at once and storing them in integer-keyed radix tries. As functions are represented as collections of n-tuples stored in Clojure vectors, this approach is both simple and extremely fast: capable of generating four orders of partial derivatives from hairy three dimensional functions in ~0.1ms on commodity CPUs.
+Madhava is a Clojure library for [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and integration of partial differential equations. As opposed to many other functional AD libraries, Madhava takes a stream processing approach by generating all partials up to a given order at once and storing them in integer-keyed radix tries. Functions are represented as lexicographically ordered hash-maps of monomials with tuples of exponents as keys and corresponding coefficients as values. This approach is both simple and extremely fast: capable of generating four orders of partial derivatives from hairy three dimensional functions in ~0.1ms on commodity CPUs.
 
 Additional functions are included for arithmetic operations, functional composition, divergence, gradients, curl, directional derivatives, normal vectors, Laplacians, and several common Taylor series. Since functions can be composed after they've been generated as data (as opposed to using Clojure's built-in composition function) the chain rule can be applied in arbitrary order, making reverse and mixed mode as simple as forward mode&mdash;a major distinction compared to other AD packages.
 
@@ -20,176 +20,176 @@ Generating partial derivatives:
 
 ```
 ;; 2xy + 3x + 5y + 7
-=> (pprint (diff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 2))
-{1 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
- 11 [[2 0 1] [3 0 0]],
- 12 [[2 1 0] [5 0 0]],
- 111 [],
- 112 [[2 0 0]],
- 121 [[2 0 0]],
- 122 []}
+=> (pprint (diff {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7} 2))
+{1 {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7},
+ 11 {[0 1] 2, [0 0] 3},
+ 12 {[1 0] 2, [0 0] 5},
+ 111 {},
+ 112 {[0 0] 2},
+ 121 {[0 0] 2},
+ 122 {}}
 ```
 
 Integrals:
 
 ```
-=> (pprint (anti-diff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 3))
-{1 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
- 11 [[1 2 1] [3/2 2 0]],
- 12 [[1 1 2] [5/2 0 2]],
- 111 [[1/3 3 1] [1/2 3 0]],
- 112 [[1/2 2 2]],
- 121 [[1/2 2 2]],
- 122 [[1/3 1 3] [5/6 0 3]],
- 1111 [[1/12 4 1] [1/8 4 0]],
- 1112 [[1/6 3 2]],
- 1121 [[1/6 3 2]],
- 1122 [[1/6 2 3]],
- 1211 [[1/6 3 2]],
- 1212 [[1/6 2 3]],
- 1221 [[1/6 2 3]],
- 1222 [[1/12 1 4] [5/24 0 4]]}
+=> (pprint (anti-diff {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7} 3))
+{1 {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7},
+ 11 {[2 1] 1, [2 0] 3/2},
+ 12 {[1 2] 1, [0 2] 5/2},
+ 111 {[3 1] 1/3, [3 0] 1/2},
+ 112 {[2 2] 1/2},
+ 121 {[2 2] 1/2},
+ 122 {[1 3] 1/3, [0 3] 5/6},
+ 1111 {[4 1] 1/12, [4 0] 1/8},
+ 1112 {[3 2] 1/6},
+ 1121 {[3 2] 1/6},
+ 1122 {[2 3] 1/6},
+ 1211 {[3 2] 1/6},
+ 1212 {[2 3] 1/6},
+ 1221 {[2 3] 1/6},
+ 1222 {[1 4] 1/12, [0 4] 5/24}}
 ```
 
 Parallel (NOTE: usually slower unless using very high dimensions or heavy processing):
 
 ```
-=> (pprint (pdiff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 2))
-{1 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
- 11 [[2 0 1] [3 0 0]],
- 12 [[2 1 0] [5 0 0]],
- 111 [],
- 112 [[2 0 0]],
- 121 [[2 0 0]],
- 122 []}
-=> (pprint (anti-pdiff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 3))
-{1 [[2 1 1] [3 1 0] [5 0 1] [7 0 0]],
- 11 [[1 2 1] [3/2 2 0]],
- 12 [[1 1 2] [5/2 0 2]],
- 111 [[1/3 3 1] [1/2 3 0]],
- 112 [[1/2 2 2]],
- 121 [[1/2 2 2]],
- 122 [[1/3 1 3] [5/6 0 3]],
- 1111 [[1/12 4 1] [1/8 4 0]],
- 1112 [[1/6 3 2]],
- 1121 [[1/6 3 2]],
- 1122 [[1/6 2 3]],
- 1211 [[1/6 3 2]],
- 1212 [[1/6 2 3]],
- 1221 [[1/6 2 3]],
- 1222 [[1/12 1 4] [5/24 0 4]]}
+=> (pprint (pdiff {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7} 2))
+{1 {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7},
+ 11 {[0 1] 2, [0 0] 3},
+ 12 {[1 0] 2, [0 0] 5},
+ 111 {},
+ 112 {[0 0] 2},
+ 121 {[0 0] 2},
+ 122 {}}
+=> (pprint (anti-pdiff {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7} 3))
+{1 {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7},
+ 11 {[2 1] 1, [2 0] 3/2},
+ 12 {[1 2] 1, [0 2] 5/2},
+ 111 {[3 1] 1/3, [3 0] 1/2},
+ 112 {[2 2] 1/2},
+ 121 {[2 2] 1/2},
+ 122 {[1 3] 1/3, [0 3] 5/6},
+ 1111 {[4 1] 1/12, [4 0] 1/8},
+ 1112 {[3 2] 1/6},
+ 1121 {[3 2] 1/6},
+ 1122 {[2 3] 1/6},
+ 1211 {[3 2] 1/6},
+ 1212 {[2 3] 1/6},
+ 1221 {[2 3] 1/6},
+ 1222 {[1 4] 1/12, [0 4] 5/24}}
 ```
 
 Arithmetic (NOTE: output is in graded lexicographic order):
 
 ```
 ;; (2xy + 3x + 5y + 7) + (x^2y + 4x + y) = x^2y + 2xy + 7x + 6y + 7
-=> (add [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] [[1 2 1] [4 1 0] [1 0 1]])
-[[1 2 1] [2 1 1] [7 1 0] [6 0 1] [7 0 0]]
+=> (add {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7} {[2 1] 1, [1 0] 4, [0 1] 1})
+{[2 1] 1, [1 1] 2, [1 0] 7, [0 1] 6, [0 0] 7}
 
 ;; variadic:
 ;; (2xy + 3x + 5y + 7) + (x^2y + 4x + y) + 10 = x^2y + 2xy + 7x + 6y + 17
-=> (add [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] [[1 2 1] [4 1 0] [1 0 1]] [[10 0 0]])
-[[1 2 1] [2 1 1] [7 1 0] [6 0 1] [17 0 0]]
+=> (add {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7} {[2 1] 1, [1 0] 4, [0 1] 1} {[0 0] 10})
+{[2 1] 1, [1 1] 2, [1 0] 7, [0 1] 6, [0 0] 17}
 
 ;; (2xy + 3x + 5y + 7) - (2xy + 3x + 5y + 7) = 0
-=> (sub [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] [[2 1 1] [3 1 0] [5 0 1] [7 0 0]])
-[]
+=> (sub {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7} {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7})
+{}
 
 ;; -(2xy + 3x + 5y + 7) = -2xy - 3x -5y -7
-=> (sub [[2 1 1] [3 1 0] [5 0 1] [7 0 0]])
-[[-2 1 1] [-3 1 0] [-5 0 1] [-7 0 0]]
+=> (sub {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7})
+{[1 1] -2, [1 0] -3, [0 1] -5, [0 0] -7}
 
 ;; 2 * (2xy + 3x + 5y + 7) = 4xy + 6x + 10y + 14
-=> (scale [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 2)
-[[4 1 1] [6 1 0] [10 0 1] [14 0 0]]
+=> (scale {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7} 2)
+{[1 1] 4, [1 0] 6, [0 1] 10, [0 0] 14}
 
 ;; (2xy + 3x + 5y + 7) * (x^2y + 4x + y)
 ;; = 2x^3y^2 + 3x^3y + 5x^2y^2 + 15x^2y + 2xy^2 + 12x^2 + 23xy + 5y^2 + 28x + 7y
-=> (mul [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] [[1 2 1] [4 1 0] [1 0 1]])
-[[2 3 2] [3 3 1] [5 2 2] [15 2 1] [2 1 2] [12 2 0] [23 1 1] [5 0 2] [28 1 0] [7 0 1]]
+=> (mul {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7} {[2 1] 1, [1 0] 4, [0 1] 1})
+{[3 2] 2, [3 1] 3, [2 2] 5, [2 1] 15, [2 0] 12, [1 2] 2, [1 1] 23, [1 0] 28, [0 2] 5, [0 1] 7}
 
 ;; (2xy + 3x + 5y + 7) / (2xy + 3x + 5y + 7) = 1 + (no remainder)
-=> (divide [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] [[2 1 1] [3 1 0] [5 0 1] [7 0 0]])
-=> ([[1 0 0]] [])
-;; (2xy + 3x + 5y + 7) / (xy + 7) = 5/7y + 1 + (3x / xy + 7)
-=> (divide [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] [[1 1 1] [7 0 0]])
-=> ([[5/7 0 1] [1 0 0]] [[3 1 0]])
+=> (divide {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7} {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7})
+({[0 0] 1} {})
+;; (2xy + 10x + 3y + 15) / (y + 5) = 2x + 3 + (no remainder)
+=> (divide {[1 1] 2, [1 0] 10, [0 1] 3, [0 0] 15} {[0 1] 1, [0 0] 5})
+({[1 0] 2, [0 0] 3} {})
 ```
 
 Composition:
 
 ```
 ;; f = 2xy + 3x + 5y + 7
-=> (def f [[2 1 1] [3 1 0] [5 0 1] [7 0 0]])
+=> (def f {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7})
 ;; f(f(x)) = 4xy^2 + 10y^2 + 12xy + 9x + 34y + 28
 => (compose f f 1)
-=> [[4 1 2] [12 1 1] [10 0 2] [9 1 0] [34 0 1] [28 0 0]]
+{[1 2] 4, [1 1] 12, [0 2] 10, [1 0] 9, [0 1] 34, [0 0] 28}
 ;; f(f(y)) = 4x^2y + 6x^2 + 10xy + 22x + 45y + 42
 => (compose f f 2)
-=> [[4 2 1] [6 2 0] [20 1 1] [32 1 0] [25 0 1] [42 0 0]]
+{[2 1] 4, [2 0] 6, [1 1] 20, [1 0] 32, [0 1] 25, [0 0] 42}
 ```
 
 Gradient:
 
 ```
 ;; f = 8(x^2)y(z^2) + y^4 + 2z^3 + 5x
-=> (grad [[8 2 1 2] [1 0 4 0] [2 0 0 3] [5 1 0 0]])
+=> {[2 1 2] 8, [1 0 0] 5, [0 4 0] 1, [0 0 3] 2}
 ;; (16xyz^2 + 5, 8(x^2)(y^2) + 4y^3, 12(x^2)yz + 6z^2
-=> ([[16 1 1 2] [5 0 0 0]] [[8 2 0 2] [4 0 3 0]] [[16 2 1 1] [6 0 0 2]])
+({[1 1 2] 16, [0 0 0] 5} {[2 0 2] 8, [0 3 0] 4} {[2 1 1] 16, [0 0 2] 6})
 ```
 
 Laplacian:
 
 ```
-=> (laplacian [[8 2 1 2] [1 0 4 0] [2 0 0 3] [5 1 0 0]])
+=> (laplacian {[2 1 2] 8, [1 0 0] 5, [0 4 0] 1, [0 0 3] 2})
 ;; (16yz^2, 12y^2, 12(x^2)y + 12z)
-=> ([[16 0 1 2]] [[12 0 2 0]] [[16 2 1 0] [12 0 0 1]])
+({[0 1 2] 16} {[0 2 0] 12} {[2 1 0] 16, [0 0 1] 12})
 ```
 
 Divergence (in Cartesian coordinates):
 
 ```
 ;; f(x,y,z) = 5(x^4)(y^3)(z^3) + 8(x^2)y(z^2) + y^4
-=> (div '([[5 4 3 3]] [[8 2 1 2]] [[1 0 4 0]]))
+=> (div '({[4 3 3] 5} {[2 1 2] 8} {[0 4 0] 1}))
 ;; (20(x^3)(y^3)(z^3), 8(x^2)(z^2), 0)
-=> ([[20 3 3 3]] [[8 2 0 2]] [])
+({[3 3 3] 20} {[2 0 2] 8} {})
 ```
 
 Curl (in Cartesian coordinates):
 
 ```
-=> (curl '([[5 4 3 3]] [[8 2 1 2]] [[1 0 4 0]]))
+=> (curl '({[4 3 3] 5} {[2 1 2] 8} {[0 4 0] 1}))
 ;; (- 16xy(z^2) + 4y^3, 15(x^4)(y^3)(z^2) - 15(x^4)(y^2)(z^3), 16(x^2)yz)
-=> ([[-16 2 1 1] [4 0 3 0]] [[15 4 3 2]] [[-15 4 2 3] [16 1 1 2]])
+({[2 1 1] -16 [0 3 0] 4} {[4 3 2] 15} {[4 2 3] -15, [1 1 2] 16})
 ```
 
 Taylor Series:
 
 ```
 => (dense-to-sparse (take 10 (exp-series)))
-[[1/362880 9] [1/40320 8] [1/5040 7] [1/720 6] [1/120 5] [1/24 4] [1/6 3] [1/2 2] [1 1] [1 0]]
+{9 1/362880, 8 1/40320, 7 1/5040, 6 1/720, 5 1/120, 4 1/24, 3 1/6, 2 1/2, 1 1, 0, 1}
 
 => (dense-to-sparse (take 10 (sin-series)))
-[[1/362880 9] [-1/5040 7] [1/120 5] [-1/6 3] [1 1]]
+{9 1/362880, 7 -1/5040, 5 1/120, 3 -1/6, 1 1}
 
 => (dense-to-sparse (take 10 (cos-series)))
-[[1/40320 8] [-1/720 6] [1/24 4] [-1/2 2] [1 0]]
+{8 1/40320, 6 -1/720, 4 1/24, 2 -1/2, 0 1}
 
 => (dense-to-sparse (take 10 (atan-series)))
-[[1/9 8] [-1/7 6] [1/5 4] [-1/3 2] [1 0]]
+{8 1/9, 6 -1/7, 4 1/5, 2 -1/3, 0 1}
 
 => (dense-to-sparse (take 10 (sinh-series)))
-[[1/362880 9] [1/5040 7] [1/120 5] [1/6 3] [1 1]]
+{9 1/362880, 7 1/5040, 5 1/120, 3 1/6, 1 1}
 
 => (dense-to-sparse (take 10 (cosh-series)))
-[[1/40320 8] [1/720 6] [1/24 4] [1/2 2] [1 0]]
+{8 1/40320, 6 1/720, 4 1/24, 2 1/2, 0 1}
 ```
 
 Printing to a text file:
 
 ```
-=> (print-tape "my_derivatives" (diff [[2 1 1] [3 1 0] [5 0 1] [7 0 0]] 2))
+=> (print-tape "my_derivatives" (diff {[1 1] 2 [1 0] 3 [0 1] 5 [0 0] 7} 2))
 ```
 
 Benchmarking:
@@ -197,7 +197,7 @@ Benchmarking:
 ```
 ;; 3 dimensions, 5 terms, 4 orders tested on 2.6GHz Core i7 
 => (use 'criterium.core)
-=> (bench (diff [[5 4 3 3] [8 2 1 2] [1 0 4 0] [2 0 0 3] [5 1 0 0]] 4))
+=> (bench (diff {[4 3 3] 5, [2 1 2] 8, [0 4 0] 1, [0 0 3] 2, [1 0 0] 5} 4))
 Evaluation count : 552540 in 60 samples of 9209 calls.
              Execution time mean : 108.857714 µs
     Execution time std-deviation : 1.092826 µs
