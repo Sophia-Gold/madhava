@@ -21,11 +21,11 @@
             (diff-loop [poly n]
               (when (<= n order)
                 (doseq [p poly]
-                  (diff-loop (map #(partial-diff (first p) (+ (* 10 (second p)) (inc %)) %)
-                                  (range vars))
-                             (inc n)))))]
-      (swap! tape assoc! 1 poly)
-      (diff-loop (list (list poly 1)) 0)
+                  (diff-loop
+                   (map #(partial-diff (first p) (+ (* 10 (second p)) (inc %)) %)
+                        (range vars))  
+                   (inc n)))))]
+      (diff-loop (list (list poly 0)) 0)
       (persistent! @tape))))
 
 (defn anti-diff [poly order]
@@ -48,8 +48,7 @@
                   (int-loop (map #(partial-int (first p) (+ (* 10 (second p)) (inc %)) %)
                                  (range vars))
                             (inc n)))))]
-      (swap! tape assoc! 1 poly)
-      (int-loop (list (list poly 1)) 0)
+      (int-loop (list (list poly 0)) 0)
       (persistent! @tape))))
             
 (defn pdiff [poly order]
@@ -72,9 +71,7 @@
                   (diff-loop (pmap #(partial-diff (first p) (+ (* 10 (second p)) (inc %)) %)
                                    (range vars))
                              (inc n)))))]
-      (dosync
-       (send *tape* assoc! 1 poly)
-       (diff-loop (list (list poly 1)) 0))
+      (diff-loop (list (list poly 0)) 0)
       (await *tape*)
       (persistent! @*tape*))))
 
@@ -98,9 +95,7 @@
                   (int-loop (pmap #(partial-int (first p) (+ (* 10 (second p)) (inc %)) %)
                                   (range vars))
                             (inc n)))))]
-      (dosync
-       (send *tape* assoc! 1 poly)
-       (int-loop (list (list poly 1)) 0))
+      (int-loop (list (list poly 0)) 0)
       (await *tape*)
       (persistent! @*tape*))))
 

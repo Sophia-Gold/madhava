@@ -4,13 +4,10 @@
             [com.rpl.specter :refer :all]))
 
 (defn jacobian [f]
-  (select [ALL (fn [[k v]]
-                 (and (> k 9) (< k 100)))]
-          (diff f 1)))
+  (diff f 1))  
 
 (defn hessian [f]
-  (select [ALL (fn [[k v]]
-                 (and (> k 99) (< k 1000)))]
+  (select [ALL (fn [[k v]] (and (> k 9) (< k 100)))]
           (diff f 2)))
 
 (defn grad [f]
@@ -22,7 +19,7 @@
   (->> f
        (grad)
        (map #(scale % n))
-       (#(apply add %))))  
+       (#(apply add %))))
 
 (defn magnitude [v]
   (->> v
@@ -38,13 +35,13 @@
 (defn laplacian [f]
   (let [partials (diff f 2)
         vars (inc (count (ffirst f)))]
-    (map #(get partials (+ 100 (* 10 %) %))
+    (map #(get partials (+ (* 10 %) %))
          (range 1 vars))))
 
 (defn div [f]
   (->> f
        (#(vector-diff % 1))
-       (map-indexed #(get %2 (+ 10 (inc %1))))))
+       (map-indexed #(get %2 (inc %1)))))
 
 (defn curl [f]
   (let [vars (count (first (ffirst f)))
@@ -53,12 +50,12 @@
         partials (vector-diff f 1)
         partials-1 (map (fn [r1 r2]
                           (get (nth partials (mod r1 vars))
-                               (+ 10 (inc (mod r2 vars)))))
+                               (inc (mod r2 vars))))
                         range2
                         range1)
         partials-2 (map (fn [r1 r2]
                           (get (nth partials (mod r1 vars))
-                               (+ 10 (inc (mod r2 vars)))))
+                               (inc (mod r2 vars))))
                         range1
                         range2)]
     (map sub partials-1 partials-2)))
