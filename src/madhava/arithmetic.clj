@@ -60,8 +60,9 @@
             term2 poly2
             :let [vars (mapv +' (key term1) (key term2))
                   coeff (* (val term1) (val term2))]]
-        (if (get @product vars)  ;; `contains?` is broken for transients 
-          (swap! product assoc! vars (+ (get @product vars) coeff))  ;; `update` is broken for transients
+        ;; (if (contains? @*product* vars)  ;; `contains?` is broken until data.avl is updated for 1.9
+        (if (get @product vars)
+          (swap! product assoc! vars (+ (get @product vars) coeff))  ;; `update!` doesn't exist
           (swap! product assoc! vars coeff))))
      (persistent! @product)))
   ([poly1 poly2 & more]
@@ -82,8 +83,9 @@
              term2 poly2
              :let [vars (mapv +' (key term1) (key term2))
                    coeff (* (val term1) (val term2))]]
-         (if (get @*product* vars)  ;; `contains?` is broken for transients 
-           (send *product* assoc! vars (+ (get @*product* vars) coeff))  ;; `update` is broken for transients
+         ;; (if (contains? @*product* vars)  ;; `contains?` is broken until data.avl is updated for 1.9
+         (if (get @*product* vars)
+           (send *product* assoc! vars (+ (get @*product* vars) coeff))  ;; `update!` doesn't exist
            (send *product* assoc! vars coeff)))))
      (await *product*)
      (persistent! @*product*)))
@@ -120,7 +122,7 @@
   ;; not the inverse of multiplication (welcome to computer algebra)
   (loop [f f
          g g
-         result (transient (sorted-map-by (comp - compare)))
+         result (transient {})
          remainder {}]
     (if (empty? f)
       (list (persistent! result)
