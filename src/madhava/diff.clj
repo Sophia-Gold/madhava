@@ -4,16 +4,33 @@
             [clojure.data.int-map :as i]
             [com.rpl.specter :refer :all]))
 
+(defn dims [vars]
+  (loop [v vars
+         i 0
+         d 1]
+    (let [q (quot vars d)]
+      (if (zero? q)
+        i
+        (recur q (inc i) (* d 10))))))
+
+;; TO DO: factor decimals in < order
+(defn int-nth [i idx dims]
+  (loop [i i
+         n (- dims idx)]
+    (if (= n dims)
+      i
+      (recur (quot i 10) (inc n)))))
+
 (defn diff [poly order]
   (let [tape (atom (transient (i/int-map)))
-        vars (count (ffirst poly))]
+        dims (dims (ffirst poly))]
     (letfn [(partial-diff [poly key idx]
               (let [partial (into {}
                                   (map #(let [vars (first %)
                                               coeff (second %) 
-                                              v (nth vars idx)]
+                                              v (int-nth vars idx dims)]
                                           (when (not (zero? v))
-                                            [(update vars idx dec)
+                                            [(- vars idx)
                                              (* coeff v)]))
                                        poly))]
                 (swap! tape assoc! key partial)
@@ -23,7 +40,7 @@
                 (doseq [p poly]
                   (diff-loop
                    (map #(partial-diff (first p) (+ (* 10 (second p)) (inc %)) %)
-                        (range vars))  
+                        (range dims))
                    (inc n)))))]
       (diff-loop (list (list poly 0)) 0)
       (persistent! @tape))))
