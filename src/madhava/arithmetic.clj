@@ -1,10 +1,10 @@
 (ns madhava.arithmetic
-  (:require [clojure.data.avl :refer [sorted-map-by]]))
+  (:require [clojure.data.int-map :as i]))
 
 (defn add-dim [poly]
-  ;; projects into next higher dimension by appending zero to tuples of variables
+  ;; projects into next higher dimension by appending zero to keys
   (->> poly
-       (map #(update % 0 conj 0))
+       (map #(update % 0 * 10))
        (into {})))
 
 (defn denull [poly]
@@ -23,8 +23,8 @@
      ([poly2 & more] (add poly1 poly2 more))))
   ([poly1 poly2]
    (denull
-    (into (sorted-map-by (comp - compare))
-          (merge-with +' poly1 poly2))))
+    (sort-by first >  ;; TO DO: avoid sorting
+             (merge-with +' poly1 poly2))))
   ([poly1 poly2 & more]
    (reduce add (add poly1 poly2) more)))
 
@@ -54,17 +54,17 @@
      ([poly2] (mul poly1 poly2))
      ([poly2 & more] (mul poly1 poly2 more))))
   ([poly1 poly2]
-   (let [product (atom (transient (sorted-map-by (comp - compare))))]
+   (let [product (atom (transient {}))]
      (doall  ;; `for` is lazy so must to be forced for side-effects 
       (for [term1 poly1
             term2 poly2
-            :let [vars (mapv +' (key term1) (key term2))
+            :let [vars (+ (key term1) (key term2))
                   coeff (* (val term1) (val term2))]]
         ;; (if (contains? @*product* vars)  ;; `contains?` is broken until data.avl is updated for 1.9
         (if (get @product vars)
           (swap! product assoc! vars (+ (get @product vars) coeff))  ;; `update!` doesn't exist
           (swap! product assoc! vars coeff))))
-     (persistent! @product)))
+     (into {} (sort-by first > (persistent! @product)))))  ;; TO DO: use int-map in atom vs. sorting
   ([poly1 poly2 & more]
    (reduce mul (mul poly1 poly2) more)))
 
@@ -81,17 +81,18 @@
       (doall;; `for` is lazy so must to be forced for side-effects 
        (for [term1 poly1
              term2 poly2
-             :let [vars (mapv +' (key term1) (key term2))
+             :let [vars (+ (key term1) (key term2))
                    coeff (* (val term1) (val term2))]]
          ;; (if (contains? @*product* vars)  ;; `contains?` is broken until data.avl is updated for 1.9
          (if (get @*product* vars)
            (send *product* assoc! vars (+ (get @*product* vars) coeff))  ;; `update!` doesn't exist
            (send *product* assoc! vars coeff)))))
      (await *product*)
-     (persistent! @*product*)))
+     (into {} (sort-by first > (persistent! @*product*)))))  ;; TO DO: use int-map in atom vs. sorting
   ([poly1 poly2 & more]
    (reduce pmul (pmul poly1 poly2) more)))
 
+;; TO DO
 (defn sqrt [poly]
   (->> poly
        (map (fn [v]
@@ -116,6 +117,7 @@
       {(vec lcm)
        (/ (second f) (second g))})))
 
+;; TO DO
 (defn divide [f g]
   ;; *not* transducer! binary only
   ;; returns a tuple of quotient and remainder

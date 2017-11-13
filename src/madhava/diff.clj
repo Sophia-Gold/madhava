@@ -13,13 +13,13 @@
         i
         (recur q (inc i) (* d 10))))))
 
-;; TO DO: factor decimals in < order
 (defn int-nth [i idx dims]
   (loop [i i
-         n (- dims idx)]
-    (if (= n dims)
-      i
-      (recur (quot i 10) (inc n)))))
+         n (dec dims)]
+    (cond
+       (zero? n) i
+       (> n idx) (recur (quot i 10) (dec n))
+       :else (recur (mod i 10) (dec n)))))
 
 (defn diff [poly order]
   (let [tape (atom (transient (i/int-map)))
@@ -30,7 +30,7 @@
                                               coeff (second %) 
                                               v (int-nth vars idx dims)]
                                           (when (not (zero? v))
-                                            [(- vars idx)
+                                            [(- vars (int (* v (Math/pow 10 (dec (- dims idx)))))) ;; ugly line
                                              (* coeff v)]))
                                        poly))]
                 (swap! tape assoc! key partial)
