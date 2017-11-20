@@ -6,7 +6,7 @@
 
 ---
 
-Madhava is a Clojure library for [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) and integration of partial differential equations. As opposed to many other functional AD libraries, Madhava takes a stream processing approach by generating all partials up to a given order at once and storing them in integer-keyed radix tries. Functions are similarly represented as lexicographically ordered maps of monomials with exponents encoded as integer keys and corresponding coefficients as values. This approach is both simple and extremely fast: capable of generating four orders of partial derivatives from hairy three dimensional functions in ~0.1ms on commodity CPUs.
+Madhava is a Clojure library for [automatic differentiation](https://en.wikipedia.org/wiki/Automatic_differentiation) of partial differential equations. As opposed to many other functional AD libraries, Madhava takes a stream processing approach by generating all partials up to a given order at once and storing them in integer-keyed radix tries. Functions are similarly represented as maps of monomials in reverse lexicographical order with exponents encoded as integer keys and corresponding coefficients as values. This approach is both simple and extremely fast: capable of generating four orders of partial derivatives from hairy three dimensional functions in ~0.1ms on commodity CPUs.
 
 Additional functions are included for arithmetic operations, functional composition, divergence, gradients, curl, directional derivatives, normal vectors, Laplacians, and several common Taylor series. Since functions can be composed after they've been generated as data (as opposed to using Clojure's built-in composition function) the chain rule can be applied in arbitrary order, making reverse and mixed mode as simple as forward mode&mdash;a major distinction compared to other AD packages.
 
@@ -20,134 +20,96 @@ Generating partial derivatives:
 
 ```
 ;; 2xy + 3x + 5y + 7
-=> (pprint (diff {11 2, 10 3, 1 5, 0 7} 2))
-{1 {1 2, 0 3},
- 2 {10 2, 0 5},
+=> (pprint (diff (i/int-map 0 7, 1 5, 10 3, 11 2) 2))
+{1 {0 3, 1 2},
+ 2 {0 5, 10 2},
  11 {},
  12 {0 2},
  21 {0 2},
  22 {}}
-```
-
-Integrals:
-
-```
-=> (pprint (anti-diff {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7} 3))
-{1 {[2 1] 1, [2 0] 3/2},
- 2 {[1 2] 1, [0 2] 5/2},
- 11 {[3 1] 1/3, [3 0] 1/2},
- 12 {[2 2] 1/2},
- 21 {[2 2] 1/2},
- 22 {[1 3] 1/3, [0 3] 5/6},
- 111 {[4 1] 1/12, [4 0] 1/8},
- 112 {[3 2] 1/6},
- 121 {[3 2] 1/6},
- 122 {[2 3] 1/6},
- 211 {[3 2] 1/6},
- 212 {[2 3] 1/6},
- 221 {[2 3] 1/6},
- 222 {[1 4] 1/12, [0 4] 5/24}}
 ```
 
 Parallel (NOTE: usually slower unless using very high dimensions or heavy processing):
 
 ```
-=> (pprint (pdiff {11 2, 10 3, 1 5, 0 7} 2))
-{1 {1 2, 0 3},
- 2 {10 2, 0 5},
+=> (pprint (pdiff (i/int-map 0 7, 1 5, 10 3, 11 2) 2))
+{1 {0 3, 1 2},
+ 2 {0 5, 10 2},
  11 {},
  12 {0 2},
  21 {0 2},
  22 {}}
-=> (pprint (anti-pdiff {[1 1] 2, [1 0] 3, [0 1] 5, [0 0] 7} 3))
-{1 {[2 1] 1, [2 0] 3/2},
- 2 {[1 2] 1, [0 2] 5/2},
- 11 {[3 1] 1/3, [3 0] 1/2},
- 12 {[2 2] 1/2},
- 21 {[2 2] 1/2},
- 22 {[1 3] 1/3, [0 3] 5/6},
- 111 {[4 1] 1/12, [4 0] 1/8},
- 112 {[3 2] 1/6},
- 121 {[3 2] 1/6},
- 122 {[2 3] 1/6},
- 211 {[3 2] 1/6},
- 212 {[2 3] 1/6},
- 221 {[2 3] 1/6},
- 222 {[1 4] 1/12, [0 4] 5/24}}
 ```
 
 Arithmetic (NOTE: output is in lexicographic order):
 
 ```
 ;; (2xy + 3x + 5y + 7) + (x^2y + 4x + y) = x^2y + 2xy + 7x + 6y + 7
-=> (add {11 2, 10 3, 1 5, 0 7} {21 1, 10 4, 1 1})
-{21 1, 11 2, 10 7, 1 6, 0 7}
+=> (add (i/int-map 0 7, 1 5, 10 3, 11 2) (i/int-map 1 1, 10 4, 21 1))
+{0 7, 1 6, 10 7, 11 2, 21 1}
 
 ;; variadic:
 ;; (2xy + 3x + 5y + 7) + (x^2y + 4x + y) + 10 = x^2y + 2xy + 7x + 6y + 17
-=> (add {11 2, 10 3, 1 5, 0 7} {21 1, 10 4, 1 1} {0 10})
-{21 1, 11 2, 10 7, 1 6, 0 17}
+=> (add (i/int-map 0 7, 1 5, 10 3, 11 2) (i/int-map 1 1, 10 4, 21 1) (i/int-map 0 10))
+{0 17, 1 6, 10 7, 11 2, 21 1}
 
 ;; (2xy + 3x + 5y + 7) - (2xy + 3x + 5y + 7) = 0
-=> (sub {11 2, 10 3, 1 5, 0 7} {11 2, 10 3, 1 5, 0 7})
+=> (sub (i/int-map 0 7, 1 5, 10 3, 11 2) (i/int-map 0 7, 1 5, 10 3, 11 2))
 {}
 
 ;; -(2xy + 3x + 5y + 7) = -2xy - 3x -5y -7
-=> (sub {11 2, 10 3, 1 5, 0 7})
+=> (sub (i/int-map 0 7, 1 5, 10 3, 11 2))
 {11 -2, 10 -3, 1 -5, 0 -7}
 
 ;; 2 * (2xy + 3x + 5y + 7) = 4xy + 6x + 10y + 14
-=> (scale {11 2, 10 3, 1 5, 0 7} 2)
-{11 4, 10 6, 1 10, 0 14}
+=> (scale (i/int-map 0 7, 1 5, 10 3, 11 2) 2)
+{0 14, 1 10, 10 6, 11 4}
 
 ;; (2xy + 3x + 5y + 7) * (x^2y + 4x + y)
 ;; = 2x^3y^2 + 3x^3y + 5x^2y^2 + 15x^2y + 2xy^2 + 12x^2 + 23xy + 5y^2 + 28x + 7y
-=> (mul {11 2, 10 3, 1 5, 0 7} {21 1, 10 4, 1 1})
-{32 2, 31 3, 22 5, 21 15, 20 12, 12 2, 11 23, 10 28, 2 5, 1 7}
+=> (mul (i/int-map 0 7, 1 5, 10 3, 11 2) (i/int-map 1 1, 10 4, 21 1))
+{1 7, 2 5, 10 28, 11 23, 12 2, 20 12, 21 15, 22 5, 31 3, 32 2}
 
 ;; (2xy + 3x + 5y + 7) / (2xy + 3x + 5y + 7) = 1 + (no remainder)
-=> (divide {11 2, 10 3, 1 5, 0 7} {11 2, 10 3, 1 5, 0 7})
+=> (divide (i/int-map 0 7, 1 5, 10 3, 11 2) (i/int-map 0 7, 1 5, 10 3, 11 2))
 ({0 1} {})
-;; (2xy + 10x + 3y + 15) / (y + 5) = 2x + 3 + (no remainder)
-=> (divide {11 2, 10 10, 1 3, 0 15} {1 1, 0 5})
-({10 2, 0 3} {})
 ```
 
 Composition:
 
 ```
 ;; f = 2xy + 3x + 5y + 7
-=> (def f {11 2, 10 3, 1 5, 0 7})
+=> (def f (i/int-map 0 7, 1 5, 10 3, 11 2))
 ;; f(f(x)) = 4xy^2 + 10y^2 + 12xy + 9x + 34y + 28
 => (compose f f 1)
-{12 4, 11 12, 2 10, 10 9, 1 34, 0 28}
+{0 28, 1 34, 2 10, 10 9, 11 12, 12 4}
 ;; f(f(y)) = 4x^2y + 6x^2 + 10xy + 22x + 45y + 42
 => (compose f f 2)
-{21 4, 20 6, 11 20, 10 32, 1 25, 0 42}
+{0 42, 1 25, 10 32, 11 20, 20 6, 21 4}
 ```
 
 Gradient:
 
 ```
 ;; f = 8(x^2)y(z^2) + y^4 + 2z^3 + 5x
-=> (grad {212 8, 100 5, 40 1, 3 2})
+=> (grad (i/int-map 3 2, 40 1, 100 5, 212 8))
 ;; (16xyz^2 + 5, 8(x^2)(y^2) + 4y^3, 12(x^2)yz + 6z^2
-({112 16, 0 5} {202 8, 30 4} {211 16, 2 6})
+({0 5, 112 16} {30 4, 202 8} {2 6, 211 16})
 ```
 
 Laplacian:
 
 ```
-=> (laplacian {212 8, 100 5, 40 1, 3 2})
+=> (laplacian (i/int-map 3 2, 40 1, 100 5, 212 8))
 ;; (16yz^2, 12y^2, 12(x^2)y + 12z)
-({12 16} {20 12} {210 16, 1 12})
+({12 16} {20 12} {1 12, 210 16})
 ```
 
 Divergence (in Cartesian coordinates):
 
 ```
 ;; f(x,y,z) = 5(x^4)(y^3)(z^3) + 8(x^2)y(z^2) + y^4
-=> (div '({433 5} {212 8} {40 1}))
+=> (div '((i/int-map 433 5) (i/int-map 212 8) (i/int-map 40 1)))
 ;; (20(x^3)(y^3)(z^3), 8(x^2)(z^2), 0)
 ({333 20} {202 8} {})
 ```
@@ -155,37 +117,37 @@ Divergence (in Cartesian coordinates):
 Curl (in Cartesian coordinates):
 
 ```
-=> (curl '({433 5} {212 8} {40 1}))
+=> (curl '((i/int-map 433 5) (i/int-map 212 8) (i/int-map 40 1)))
 ;; (- 16xy(z^2) + 4y^3, 15(x^4)(y^3)(z^2) - 15(x^4)(y^2)(z^3), 16(x^2)yz)
-({211 -16, 30 4} {432 15} {423 -15, 112 16})
+({30 4, 211 -16} {432 15} {112 16, 423 -15})
 ```
 
 Taylor Series:
 
 ```
 => (dense-to-sparse (take 10 (exp-series)))
-{9 1/362880, 8 1/40320, 7 1/5040, 6 1/720, 5 1/120, 4 1/24, 3 1/6, 2 1/2, 1 1, 0, 1}
+{0 1, 1 1, 2 1/2, 3 1/6, 4 1/24, 5 1/120, 6 1/720, 7 1/5040, 8 1/40320, 9 1/362880}
 
 => (dense-to-sparse (take 10 (sin-series)))
-{9 1/362880, 7 -1/5040, 5 1/120, 3 -1/6, 1 1}
+{1 1, 3 -1/6, 5 1/120, 7 -1/5040, 9 1/362880}
 
 => (dense-to-sparse (take 10 (cos-series)))
-{8 1/40320, 6 -1/720, 4 1/24, 2 -1/2, 0 1}
+{0 1, 2 -1/2, 4 1/24, 6 -1/720, 8 1/40320}
 
 => (dense-to-sparse (take 10 (atan-series)))
-{8 1/9, 6 -1/7, 4 1/5, 2 -1/3, 0 1}
+{0 1, 2 -1/3, 4 1/5, 6 -1/7, 8 1/9}
 
 => (dense-to-sparse (take 10 (sinh-series)))
-{9 1/362880, 7 1/5040, 5 1/120, 3 1/6, 1 1}
+{1 1, 3 1/6, 5 1/120, 7 1/5040, 9 1/362880}
 
 => (dense-to-sparse (take 10 (cosh-series)))
-{8 1/40320, 6 1/720, 4 1/24, 2 1/2, 0 1}
+{0 1, 2 1/2, 4 1/24, 6 1/720, 8 1/40320}
 ```
 
 Printing to a text file:
 
 ```
-=> (print-tape "my_derivatives" (diff {11 2, 10 3, 1 5, 0 7} 2))
+=> (print-tape "my_derivatives" (diff (i/int-map 0 7, 1 5, 10 3, 11 2) 2))
 ```
 
 Benchmarking:
@@ -193,7 +155,7 @@ Benchmarking:
 ```
 ;; 3 dimensions, 5 terms, 4 orders tested on 2.6GHz Core i7 
 => (use 'criterium.core)
-=> (bench (diff {433 5, 212 8, 100 5, 40 1, 3 2} 4))
+=> (bench (diff (i/int-map 3 2, 40 1, 100 5, 212 8, 433 5) 4))
 Evaluation count : 552540 in 60 samples of 9209 calls.
              Execution time mean : 108.857714 µs
     Execution time std-deviation : 1.092826 µs

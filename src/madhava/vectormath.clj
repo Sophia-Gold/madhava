@@ -21,16 +21,16 @@
        (map #(scale % n))
        (#(apply add %))))
 
-(defn magnitude [v]
-  (->> v
-       (map #(mul % %))
-       (#(apply add %))
-       (sqrt)))
+;; (defn magnitude [v]
+;;   (->> v
+;;        (map #(mul % %))
+;;        (#(apply add %))
+;;        (sqrt)))
 
-(defn normal [f]
-  (let [g (grad f)]
-    (divide (apply add g)
-            (magnitude g))))
+;; (defn normal [f]
+;;   (let [g (grad f)]
+;;     (divide (apply add g)
+;;             (magnitude g))))
 
 (defn laplacian [f]
   (let [partials (diff f 2)
