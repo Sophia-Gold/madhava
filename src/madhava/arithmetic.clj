@@ -89,7 +89,7 @@
               (and (zero? x) (not= 0 y)) nil
               (< x y) nil
               (>= x y) (* (- x y)
-                          (int (Math/pow 10 (- dims %))))))  ;; TO DO
+                          (int (Math/pow 10 (- dims %))))))
          (range dims))))
      
 (defn s-poly [f g]
