@@ -1,6 +1,8 @@
 (ns madhava.vectormath
   (:require [madhava.diff :refer :all]
             [madhava.arithmetic :refer :all]
+            [madhava.util :refer :all]
+            [clojure.data.int-map :as i]
             [com.rpl.specter :refer :all]))
 
 (defn jacobian [f]
@@ -34,9 +36,9 @@
 
 (defn laplacian [f]
   (let [partials (diff f 2)
-        vars (inc (count (ffirst f)))]
+        vars (dims (first (last f)))]
     (map #(get partials (+ (* 10 %) %))
-         (range 1 vars))))
+         (range 1 (inc vars)))))
 
 (defn div [f]
   (->> f
@@ -44,37 +46,37 @@
        (map-indexed #(get %2 (inc %1)))))
 
 (defn curl [f]
-  (let [vars (count (first (ffirst f)))
+  (let [vars (dims (first (last (first f))))
         range1 (range 1 (inc vars))
         range2 (range (dec vars) (+ vars (dec vars)))
         partials (vector-diff f 1)
-        partials-1 (map (fn [r1 r2]
-                          (get (nth partials (mod r1 vars))
-                               (inc (mod r2 vars))))
+        partials-1 (map (fn [r1 r2] 
+                          (get (nth partials (mod r1 vars) vars)  ;; '(2 0 1)
+                               (inc (mod r2 vars))))  ;; '(1 2 0)
                         range2
                         range1)
         partials-2 (map (fn [r1 r2]
-                          (get (nth partials (mod r1 vars))
-                               (inc (mod r2 vars))))
+                          (get (nth partials (mod r1 vars) vars)  ;; '(1 2 0)
+                               (inc (mod r2 vars))))  ;; '(2 0 1)
                         range1
                         range2)]
     (map sub partials-1 partials-2)))
 
-(defn compose [f g idx]
-  (let [idx (dec idx)]  ;; x == 1st var, 0th element in tuple 
-    (loop [f f
-           result {}]
-      (let [term (first f)
-            vars (first term)
-            coeff (second term)
-            v (nth vars idx)]
-        (cond
-          (nil? term) (into (sorted-map-by (comp - compare)) result)
-          (zero? v) (recur (dissoc f vars) (add {vars coeff} result))
-          :else (recur (dissoc f vars) (add (apply mul
-                                                   {(assoc vars idx 0) coeff}
-                                                   (repeat v g))  ;; raise g to exponent
-                                            result)))))))
+(defn compose [f g idx] 
+  (loop [f f
+         result (i/int-map)]
+    (let [term (first f)
+          vars (first term)
+          coeff (second term)
+          v (int-nth vars idx (dims vars))]
+      (cond
+        (nil? term) result
+        (zero? v) (recur (dissoc f vars) (add (i/int-map vars coeff) result))
+        :else (recur (dissoc f vars) (add (apply mul
+                                                 (i/int-map (- vars (* v (long (Math/pow 10 (dec idx)))))
+                                                            coeff)
+                                                 (repeat v g))  ;; raise g to exponent
+                                          result))))))
 
 (defn chain
   ;; transducer form of compose

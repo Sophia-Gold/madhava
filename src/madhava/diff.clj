@@ -12,7 +12,7 @@
               (let [partial (transform [ALL] (fn [[k v]]
                                                (let [var (int-nth k idx dims)]
                                                  (when (not (zero? var))
-                                                   [(- k (* var (long (Math/pow 10 (dec (- dims idx))))))
+                                                   [(- k (long (Math/pow 10 (dec (- dims idx)))))
                                                     (* v var)])))
                                        poly)]
                 (swap! tape assoc! key partial)
@@ -32,7 +32,7 @@
               (let [partial (transform [ALL] (fn [[k v]]
                                                (let [var (int-nth k idx dims)]
                                                  (when (not (zero? var))
-                                                   [(- k (* var (long (Math/pow 10 (dec (- dims idx))))))
+                                                   [(- k (long (Math/pow 10 (dec (- dims idx)))))
                                                     (* v var)])))
                                        poly)]
                 (send *tape* assoc! key partial)
@@ -47,7 +47,12 @@
       (persistent! @*tape*))))
 
 (defn vector-diff [vf order]
-  (pmap #(diff % order) vf))
+  (let [max-dims (apply max (map (comp dims first last) vf))
+        vf (map #(if (< (dims (first (last %))) max-dims)   ;; normalize to max dimension
+                   (assoc % (Math/pow 10 (dec max-dims)) 0)
+                   %)
+                vf)]
+    (pmap #(diff % order) vf)))
 
 (defmacro print-tape [filename tape]
   `(pprint ~tape
