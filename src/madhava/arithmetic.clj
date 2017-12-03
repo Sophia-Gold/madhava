@@ -74,13 +74,6 @@
   ([poly1 poly2 & more]
    (reduce pmul (pmul poly1 poly2) more)))
 
-;; (defn sqrt [poly]
-;;   (->> poly
-;;        (map (fn [v]
-;;               {(mapv #(/ % 2) (first v))
-;;                (Math/sqrt (second v))}))
-;;        (into (i/int-map))))
-
 (defn compl [term1 term2]
   (let [dims (dims term1)]
     (map #(let [x (int-nth term1 % dims)

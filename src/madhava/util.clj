@@ -19,11 +19,9 @@
         (recur q (inc i) (* d 10))))))
 
 (defn int-nth [i idx dims]
-  (if (zero? dims)
-    i
-    (loop [i i
-           n (dec dims)]
-      (cond
-        (zero? n) i
-        (> n idx) (recur (quot i 10) (dec n))
-        :else (recur (mod i 10) (dec n))))))
+  (loop [i i
+         n (dec dims)]
+    (cond
+      (zero? n) i
+      (> n idx) (recur (quot i 10) (dec n))
+      :else (recur (mod i 10) (dec n)))))
