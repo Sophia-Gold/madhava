@@ -48,9 +48,8 @@
             term2 poly2
             :let [vars (mapv +' (key term1) (key term2))
                   coeff (* (val term1) (val term2))]]
-        ;; (if (contains? @*product* vars)  ;; `contains?` is broken until data.avl is updated for 1.9
-        (if (get @product vars)
-          (swap! product assoc! vars (+ (get @product vars) coeff))  ;; `update!` doesn't exist
+        (if (contains? @product vars)
+          (swap! product assoc! vars (+ (get @product vars) coeff))
           (swap! product assoc! vars coeff))))
      (persistent! @product)))
   ([poly1 poly2 & more]
@@ -71,9 +70,8 @@
              term2 poly2
              :let [vars (mapv +' (key term1) (key term2))
                    coeff (* (val term1) (val term2))]]
-         ;; (if (contains? @*product* vars)  ;; `contains?` is broken until data.avl is updated for 1.9
-         (if (get @*product* vars)
-           (send *product* assoc! vars (+ (get @*product* vars) coeff))  ;; `update!` doesn't exist
+         (if (contains? @*product* vars) 
+           (send *product* assoc! vars (+ (get @*product* vars) coeff))
            (send *product* assoc! vars coeff)))))
      (await *product*)
      (persistent! @*product*)))

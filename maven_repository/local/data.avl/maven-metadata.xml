@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>local</groupId>
+  <artifactId>data.avl</artifactId>
+  <versioning>
+    <versions>
+      <version>0.0.18-SNAPSHOT</version>
+    </versions>
+    <lastUpdated>20171203050622</lastUpdated>
+  </versioning>
+</metadata>
