@@ -1,18 +1,6 @@
 (ns madhava.arithmetic
-  (:require [clojure.data.avl :refer [sorted-map-by]]))
-
-(defn add-dim [poly]
-  ;; projects into next higher dimension by appending zero to tuples of variables
-  (->> poly
-       (map #(update % 0 conj 0))
-       (into {})))
-
-(defn denull [poly]
-  ;; major perf loss on `add` and `sub`
-  ;; try replacing with Specter macro?
-  (->> poly
-       (filter #(not= 0 (second %)))
-       (into {})))
+  (:require [madhava.util :refer :all]
+            [clojure.data.avl :refer [sorted-map-by]]))
 
 (defn add
   ;; transducer
@@ -137,7 +125,7 @@
                  (dissoc g (first term2))
                  result
                  (conj remainder term1))
-          (recur (sub f (mul g s-term))  ;; replace with pmul
+          (recur (sub f (mul g s-term))
                  g
                  (conj! result s-term)
                  remainder))))))

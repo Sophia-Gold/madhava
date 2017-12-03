@@ -2,6 +2,7 @@
   (:require [clojure.test :refer :all]
             [madhava.arithmetic :refer :all]
             [madhava.vectormath :refer :all]
+            [madhava.comp :refer :all]
             [madhava.taylorseries :refer :all]))
 
 (deftest add-tests

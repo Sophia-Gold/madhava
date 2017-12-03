@@ -1,5 +1,6 @@
 (ns madhava.diff
   (:require [madhava.arithmetic :refer :all]
+            [madhava.util :refer :all]
             [clojure.pprint :refer [pprint]]
             [clojure.data.int-map :as i]
             [com.rpl.specter :refer :all]))
