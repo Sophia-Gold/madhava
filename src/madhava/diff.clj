@@ -7,97 +7,85 @@
 
 (defn diff [poly order]
   (let [tape (atom (transient (i/int-map)))
-        vars (count (ffirst poly))]
+        dims (count (ffirst poly))]
     (letfn [(partial-diff [poly key idx]
-              (let [partial (into {}
-                                  (map #(let [vars (first %)
-                                              coeff (second %) 
-                                              v (nth vars idx)]
-                                          (when (not (zero? v))
-                                            [(update vars idx dec)
-                                             (* coeff v)]))
-                                       poly))]
+              (let [partial (transform [ALL] (fn [[k v]]
+                                               (let [var (nth k idx)]
+                                                 (when (not (zero? var))
+                                                   [(update k idx dec)
+                                                    (* v var)])))
+                                       poly)]
                 (swap! tape assoc! key partial)
                 (list partial key)))
             (diff-loop [poly n]
-              (when (<= n order)
-                (doseq [p poly]
-                  (diff-loop
-                   (map #(partial-diff (first p) (+ (* 10 (second p)) (inc %)) %)
-                        (range vars))  
-                   (inc n)))))]
-      (diff-loop (list (list poly 0)) 0)
+              (when (< n order)
+                (run! #(diff-loop (partial-diff (first poly) (+ (* 10 (second poly)) (inc %)) %)
+                                  (inc n))
+                      (range dims))))]
+      (diff-loop (list poly 0) 0)
       (persistent! @tape))))
 
 (defn anti-diff [poly order]
   (let [tape (atom (transient (i/int-map)))
-        vars (count (ffirst poly))]
-    (letfn [(partial-int [poly key idx]
-              (let [partial (into {}
-                                  (map #(let [vars (first %)
-                                              coeff (second %)
-                                              v (nth vars idx)]
-                                          (when (not (zero? v))
-                                            [(update vars idx inc)
-                                             (/ coeff (inc v))]))
-                                       poly))]
+        dims (count (ffirst poly))]
+    (letfn [(partial-diff [poly key idx]
+              (let [partial (transform [ALL] (fn [[k v]]
+                                               (let [var (nth k idx)]
+                                                 (when (not (zero? var))
+                                                   [(update k idx inc)
+                                                    (/ v (inc var))])))
+                                       poly)]
                 (swap! tape assoc! key partial)
                 (list partial key)))
-            (int-loop [poly n]
-              (when (<= n order)
-                (doseq [p poly]
-                  (int-loop (map #(partial-int (first p) (+ (* 10 (second p)) (inc %)) %)
-                                 (range vars))
-                            (inc n)))))]
-      (int-loop (list (list poly 0)) 0)
+            (diff-loop [poly n]
+              (when (< n order)
+                (run! #(diff-loop (partial-diff (first poly) (+ (* 10 (second poly)) (inc %)) %)
+                                  (inc n))
+                      (range dims))))]
+      (diff-loop (list poly 0) 0)
       (persistent! @tape))))
-            
+
 (defn pdiff [poly order]
   (let [*tape* (agent (transient (i/int-map)))
-        vars (count (ffirst poly))]
+        dims (count (ffirst poly))]
     (letfn [(partial-diff [poly key idx]
-              (let [partial (into {}
-                                  (map #(let [vars (first %)
-                                              coeff (second %) 
-                                              v (nth vars idx)]
-                                          (when (not (zero? v))
-                                            [(update vars idx dec)
-                                             (* coeff v)]))
-                                       poly))]
+              (let [partial (transform [ALL] (fn [[k v]]
+                                               (let [var (nth k idx)]
+                                                 (when (not (zero? var))
+                                                   [(update k idx dec)
+                                                    (* v var)])))
+                                       poly)]
                 (send *tape* assoc! key partial)
                 (list partial key)))
             (diff-loop [poly n]
               (when (< n order)
-                (doseq [p poly]
-                  (diff-loop (pmap #(partial-diff (first p) (+ (* 10 (second p)) (inc %)) %)
-                                   (range vars))
-                             (inc n)))))]
-      (diff-loop (list (list poly 0)) 0)
+                (doall
+                 (pmap #(diff-loop (partial-diff (first poly) (+ (* 10 (second poly)) (inc %)) %)
+                                   (inc n))
+                       (range dims)))))]
+      (diff-loop (list poly 0) 0)
       (await *tape*)
       (persistent! @*tape*))))
 
 (defn anti-pdiff [poly order]
   (let [*tape* (agent (transient (i/int-map)))
-        vars (count (ffirst poly))]
-    (letfn [(partial-int [poly key idx]
-              (let [partial (into {}
-                                  (map #(let [vars (first %)
-                                              coeff (second %)
-                                              v (nth vars idx)]
-                                          (when (not (zero? v))
-                                            [(update vars idx inc)
-                                             (/ coeff (inc v))]))
-                                       poly))]
+        dims (count (ffirst poly))]
+    (letfn [(partial-diff [poly key idx]
+              (let [partial (transform [ALL] (fn [[k v]]
+                                               (let [var (nth k idx)]
+                                                 (when (not (zero? var))
+                                                   [(update k idx inc)
+                                                    (/ v (inc var))])))
+                                       poly)]
                 (send *tape* assoc! key partial)
                 (list partial key)))
-            (int-loop [poly n]
+            (diff-loop [poly n]
               (when (< n order)
-                (doseq [p poly]
-                  (int-loop (pmap #(partial-int (first p) (+ (* 10 (second p)) (inc %)) %)
-                                  (range vars))
-                            (inc n)))))]
-      (int-loop (list (list poly 0)) 0)
-      (await *tape*)
+                (doall
+                 (pmap #(diff-loop (partial-diff (first poly) (+ (* 10 (second poly)) (inc %)) %)
+                                   (inc n))
+                       (range dims)))))]
+      (diff-loop (list poly 0) 0)
       (persistent! @*tape*))))
 
 (defn vector-diff [vf order]
