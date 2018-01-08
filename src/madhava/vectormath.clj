@@ -31,7 +31,8 @@
 (defn div [f]
   (->> f
        (#(vector-diff % 1))
-       (map-indexed #(get %2 (inc %1)))))
+       (map-indexed #(get %2 (inc %1)))
+       (#(apply add %))))
 
 (defn curl [f]
   (let [vars (dims (first (last (first f))))
