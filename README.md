@@ -125,7 +125,7 @@ Curl (in Cartesian coordinates):
 ({30 4, 211 -16} {432 15} {112 16, 423 -15})
 ```
 
-["The boundary of a boundary is zero."](http://cqi.inf.usi.ch/qic/wheeler.pdf)
+[The boundary of a boundary is zero:](http://cqi.inf.usi.ch/qic/wheeler.pdf)
 
 ```
 => (div (curl [(i/int-map 433 5) (i/int-map 212 8) (i/int-map 40 1)]))
