@@ -110,8 +110,8 @@ Divergence (in Cartesian coordinates):
 ```
 ;; f(x,y,z) = 5(x^4)(y^3)(z^3) + 8(x^2)y(z^2) + y^4
 => (div '((i/int-map 433 5) (i/int-map 212 8) (i/int-map 40 1)))
-;; (20(x^3)(y^3)(z^3), 8(x^2)(z^2), 0)
-({333 20} {202 8} {})
+;; 8(x^2)(z^2) + 20(x^3)(y^3)(z^3)
+{202 8, 333 20}
 ```
 
 Curl (in Cartesian coordinates):

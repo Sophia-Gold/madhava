@@ -137,7 +137,7 @@
 
 (deftest div-tests
   (is (= (div (list (i/int-map 433 5) (i/int-map 212 8) (i/int-map 40 1)))
-         (list {333 20} {202 8} {}))))
+         {202 8, 333 20})))
 
 (deftest curl-tests
   (is (= (curl (list (i/int-map 433 5) (i/int-map 212 8) (i/int-map 40 1)))
