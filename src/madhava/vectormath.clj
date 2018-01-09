@@ -25,8 +25,9 @@
 (defn laplacian [f]
   (let [partials (diff f 2)
         vars (dims (first (last f)))]
-    (map #(get partials (+ (* 10 %) %))
-         (range 1 (inc vars)))))
+    (->> (range 1 (inc vars))
+         (map #(get partials (+ (* 10 %) %)))
+         (#(apply add %)))))
 
 (defn div [f]
   (->> f

@@ -102,7 +102,10 @@ Laplacian:
 ```
 => (laplacian (i/int-map 3 2, 40 1, 100 5, 212 8))
 ;; (16yz^2, 12y^2, 12(x^2)y + 12z)
-({12 16} {20 12} {1 12, 210 16})
+{1 12, 12 16, 20 12, 210 16}
+=> (= (laplacian (i/int-map 3 2, 40 1, 100 5, 212 8))
+      (div (grad (i/int-map 3 2, 40 1, 100 5, 212 8))))
+true
 ```
 
 Divergence (in Cartesian coordinates):
@@ -120,6 +123,15 @@ Curl (in Cartesian coordinates):
 => (curl [(i/int-map 433 5) (i/int-map 212 8) (i/int-map 40 1)])
 ;; (- 16xy(z^2) + 4y^3, 15(x^4)(y^3)(z^2) - 15(x^4)(y^2)(z^3), 16(x^2)yz)
 ({30 4, 211 -16} {432 15} {112 16, 423 -15})
+```
+
+["The boundary of a boundary is zero."](http://cqi.inf.usi.ch/qic/wheeler.pdf)
+
+```
+=> (div (curl [(i/int-map 433 5) (i/int-map 212 8) (i/int-map 40 1)]))
+{}
+=> (curl (grad (i/int-map 3 2, 40 1, 100 5, 212 8)))
+({} {} {})
 ```
 
 Taylor Series:
