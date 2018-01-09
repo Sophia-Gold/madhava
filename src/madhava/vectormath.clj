@@ -35,13 +35,15 @@
 (defn laplacian [f]
   (let [partials (diff f 2)
         vars (inc (count (ffirst f)))]
-    (map #(get partials (+ (* 10 %) %))
-         (range 1 vars))))
+    (->> (range 1 vars)
+         (map #(get partials (+ (* 10 %) %)))
+         (#(apply add %)))))
 
 (defn div [f]
   (->> f
        (#(vector-diff % 1))
-       (map-indexed #(get %2 (inc %1)))))
+       (map-indexed #(get %2 (inc %1)))
+       (#(apply add %))))
 
 (defn curl [f]
   (let [vars (count (first (ffirst f)))
