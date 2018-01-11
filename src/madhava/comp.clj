@@ -1,8 +1,10 @@
 (ns madhava.comp
   (:require [madhava.arithmetic :refer :all]
             [madhava.vectormath :refer :all]
-            [clojure.data.avl :as avl]))
-
+            [clojure.data.avl :as avl]
+            [clj-tuple :refer [vector]])
+  (:refer-clojure :exclude [vector]))
+  
 (defn compose [f g idx]
   (let [idx (dec idx)]  ;; x == 1st var, 0th element in tuple 
     (loop [f f

@@ -1,7 +1,9 @@
 (ns madhava.vectormath
   (:require [madhava.diff :refer :all]
             [madhava.arithmetic :refer :all]
-            [com.rpl.specter :refer :all]))
+            [com.rpl.specter :refer :all]
+            [clj-tuple :refer [vector]])
+  (:refer-clojure :exclude [vector]))
 
 (defn jacobian [f]
   (diff f 1))  

@@ -3,7 +3,9 @@
             [madhava.util :refer :all]
             [clojure.pprint :refer [pprint]]
             [clojure.data.int-map :as i]
-            [com.rpl.specter :refer :all]))
+            [com.rpl.specter :refer :all]
+            [clj-tuple :refer [vector]])
+  (:refer-clojure :exclude [vector]))
 
 (defn diff [poly order]
   (let [tape (atom (transient (i/int-map)))

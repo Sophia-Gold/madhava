@@ -1,7 +1,9 @@
 (ns madhava.arithmetic
   (:require [madhava.util :refer :all]
-            [clojure.data.avl :as avl]))
-
+            [clojure.data.avl :as avl]
+            [clj-tuple :refer [vector]])
+  (:refer-clojure :exclude [vector]))
+          
 (defn add
   ;; transducer
   ([poly1]  ;; completion

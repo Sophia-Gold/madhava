@@ -1,9 +1,11 @@
 (ns madhava-test
   (:require [clojure.test :refer :all]
             [madhava.arithmetic :refer :all]
+            [madhava.comp :refer :all] 
+            [madhava.taylorseries :refer :all]
             [madhava.vectormath :refer :all]
-            [madhava.comp :refer :all]
-            [madhava.taylorseries :refer :all]))
+            [clj-tuple :refer [vector]])
+  (:refer-clojure :exclude [vector]))
 
 (deftest add-tests
   (is (= (add {[0 0] 7, [0 1] 5, [1 0] 3, [1 1] 2}
