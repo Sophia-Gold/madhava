@@ -1,6 +1,6 @@
 (ns madhava.arithmetic
   (:require [madhava.util :refer :all]
-            [clojure.data.avl :refer [sorted-map-by]]))
+            [clojure.data.avl :as avl]))
 
 (defn add
   ;; transducer
@@ -11,7 +11,7 @@
      ([poly2 & more] (add poly1 poly2 more))))
   ([poly1 poly2]
    (denull
-    (into (sorted-map-by (comp - compare))
+    (into (avl/sorted-map)
           (merge-with +' poly1 poly2))))
   ([poly1 poly2 & more]
    (reduce add (add poly1 poly2) more)))
@@ -42,7 +42,7 @@
      ([poly2] (mul poly1 poly2))
      ([poly2 & more] (mul poly1 poly2 more))))
   ([poly1 poly2]
-   (let [product (atom (transient (sorted-map-by (comp - compare))))]
+   (let [product (atom (transient (avl/sorted-map)))]
      (doall  ;; `for` is lazy so must to be forced for side-effects 
       (for [term1 poly1
             term2 poly2
@@ -63,7 +63,7 @@
      ([poly2] (pmul poly1 poly2))
      ([poly2 & more] (pmul poly1 poly2 more))))
   ([poly1 poly2]
-   (let [*product* (agent (transient (sorted-map-by (comp - compare))))]
+   (let [*product* (agent (transient (avl/sorted-map)))]
      (dosync
       (doall;; `for` is lazy so must to be forced for side-effects 
        (for [term1 poly1
@@ -114,7 +114,7 @@
       (list (persistent! result)
             (->> remainder
                  (filter #(not (nil? %)))
-                 (into (sorted-map-by (comp - compare)))))
+                 (into (avl/sorted-map))))
       (let [term1 (first f)
             term2 (first g)
             s-term (s-poly term1 term2)]
