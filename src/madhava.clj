@@ -1,4 +1,4 @@
-(ns madhava.core
+(ns madhava
   (:gen-class)
   (:require [madhava.ast :refer [defn example]]
             [madhava.util :refer :all]

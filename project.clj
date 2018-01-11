@@ -6,9 +6,9 @@
                  [io.rkn/core.async "0.1.0-SNAPSHOT"]
                  [org.clojure/data.int-map "0.2.4"]
                  [local/data.avl "0.0.18-SNAPSHOT"]
-                 [com.rpl/specter "1.0.3"]
-                 [criterium "0.4.4"]]
+                 [com.rpl/specter "1.0.3"]]
+  :profiles {:dev {:dependencies [[criterium "0.4.4"]]}
+             :uberjar {:aot :all}}
   :repositories {"local" ~(str (.toURI (java.io.File. "maven_repository")))}
-  :main madhava.core
-  :target-path "target/%s"
-  :profiles {:uberjar {:aot :all}})
+  :main madhava
+  :target-path "target/%s")
