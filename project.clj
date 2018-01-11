@@ -8,10 +8,9 @@
                  [local/data.avl "0.0.18-SNAPSHOT"]
                  [com.rpl/specter "1.0.3"]
                  [org.clojure/tools.analyzer "0.6.9"]
-                 [org.clojure/tools.analyzer.jvm "0.7.0"]
-                 [org.clojure/tools.nrepl "0.2.12"]
-                 [criterium "0.4.4"]]
+                 [org.clojure/tools.analyzer.jvm "0.7.0"]]
+  :profiles {:dev {:dependencies [[criterium "0.4.4"]]}
+             :uberjar {:aot :all}}
   :repositories {"local" ~(str (.toURI (java.io.File. "maven_repository")))}
   :main madhava.core
-  :target-path "target/%s"
-  :profiles {:uberjar {:aot :all}})
+  :target-path "target/%s")
