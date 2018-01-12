@@ -9,5 +9,4 @@
             [clojure.data.int-map :as i]))
 
 (defn -main []
-  (compose (i/int-map 0 7, 1 5, 10 3, 11 2)
-           (i/int-map 0 7, 1 5, 10 3, 11 2) 1))
+  )
