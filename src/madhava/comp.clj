@@ -1,9 +1,10 @@
 (ns madhava.comp
   (:require [madhava.arithmetic :refer :all]
+            [madhava.util :refer :all]
             [madhava.vectormath :refer :all]
-            [clojure.data.avl :as avl]
+            [clojure.data.avl :refer [sorted-map-by]]
             [clj-tuple :refer [vector]])
-  (:refer-clojure :exclude [vector]))
+  (:refer-clojure :exclude [vector sorted-map-by]))
   
 (defn compose [f g idx]
   (let [idx (dec idx)]  ;; x == 1st var, 0th element in tuple 
@@ -14,7 +15,7 @@
             coeff (second term)
             v (nth vars idx)]
         (cond
-          (nil? term) (into (avl/sorted-map) result)
+          (nil? term) (into (sorted-map-by grevlex) result)
           (zero? v) (recur (dissoc f vars) (add {vars coeff} result))
           :else (recur (dissoc f vars) (add (apply mul
                                                    {(assoc vars idx 0) coeff}

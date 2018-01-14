@@ -1,5 +1,8 @@
 (ns madhava.taylorseries
-  (:require [clojure.data.avl :as avl]))
+  (:require [madhava.util :refer :all]
+            [clojure.data.avl :refer [sorted-map-by]]
+            [clj-tuple :refer [vector]])
+  (:refer-clojure :exclude [vector sorted-map-by]))
 
 (defn integrate-series [s]
   (map / s (drop 1 (range))))
@@ -8,14 +11,14 @@
   (map - s))
 
 (defn dense-to-sparse [s]
+  ;; only for univariate polys
   (->> s
-       (map-indexed #(if (not= %2 0) [%1 %2]))
+       (map-indexed #(if (not= %2 0) [[%1] %2]))
        (filterv some?)
-       (into (avl/sorted-map))))
+       (into (sorted-map-by grevlex))))
 
 (defn sparse-to-dense [poly]
-  ;; only for univariate polys
-  (let [poly (into (avl/sorted-map) poly)
+  (let [poly (into (sorted-map-by grevlex) poly)
         order (keys poly)
         diff-terms (concat (map #(dec (- %1 %2)) (next order) order) (list 0))]
     (mapcat #(cons %2 (repeat %1 0)) diff-terms (vals poly))))

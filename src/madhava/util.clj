@@ -16,11 +16,12 @@
       comp
       (loop [term1 term1
              term2 term2]
-        (let [grade1 (last term1)
-              grade2 (last term2)
-              comp (- grade1 grade2)] ;; differs from grlex because terms are flipped from above
-          (cond
-            (empty? term1) 0
-            (not= 0 comp) comp
-            :else (recur (pop term1)
-                         (pop term2))))))))
+        (if (empty? term1)
+          0
+          (let [grade1 (last term1)
+                grade2 (last term2)
+                comp (- grade1 grade2)] ;; differs from grlex because terms are flipped from above
+            (if (not= 0 comp)
+            comp
+            (recur (pop term1)
+                   (pop term2)))))))))

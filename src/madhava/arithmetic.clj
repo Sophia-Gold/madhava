@@ -1,9 +1,9 @@
 (ns madhava.arithmetic
   (:require [madhava.util :refer :all]
-            [clojure.data.avl :as avl]
+            [clojure.data.avl :refer [sorted-map-by]]
             [clj-tuple :refer [vector]])
-  (:refer-clojure :exclude [vector]))
-          
+  (:refer-clojure :exclude [vector sorted-map-by]))
+
 (defn add
   ;; transducer
   ([poly1]  ;; completion
@@ -13,7 +13,7 @@
      ([poly2 & more] (add poly1 poly2 more))))
   ([poly1 poly2]
    (denull
-    (into (avl/sorted-map)
+    (into (sorted-map-by grevlex)
           (merge-with +' poly1 poly2))))
   ([poly1 poly2 & more]
    (reduce add (add poly1 poly2) more)))
@@ -44,7 +44,7 @@
      ([poly2] (mul poly1 poly2))
      ([poly2 & more] (mul poly1 poly2 more))))
   ([poly1 poly2]
-   (let [product (atom (transient (avl/sorted-map)))]
+   (let [product (atom (transient (sorted-map-by grevlex)))]
      (doall  ;; `for` is lazy so must to be forced for side-effects 
       (for [term1 poly1
             term2 poly2
@@ -65,7 +65,7 @@
      ([poly2] (pmul poly1 poly2))
      ([poly2 & more] (pmul poly1 poly2 more))))
   ([poly1 poly2]
-   (let [*product* (agent (transient (avl/sorted-map)))]
+   (let [*product* (agent (transient (sorted-map-by grevlex)))]
      (dosync
       (doall;; `for` is lazy so must to be forced for side-effects 
        (for [term1 poly1
@@ -116,7 +116,7 @@
       (list (persistent! result)
             (->> remainder
                  (filter #(not (nil? %)))
-                 (into (avl/sorted-map))))
+                 (into (sorted-map-by grevlex))))
       (let [term1 (first f)
             term2 (first g)
             s-term (s-poly term1 term2)]
