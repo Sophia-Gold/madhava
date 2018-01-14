@@ -1,6 +1,5 @@
 (ns madhava.util
-  (:require [com.rpl.specter :refer :all]
-            [clojure.data.avl :as avl]))
+  (:require [com.rpl.specter :refer :all]))
 
 (defn add-dim [poly]
   ;; projects into next higher dimension by appending zero to tuples of variables
@@ -9,19 +8,19 @@
 (defn denull [poly]
   (setval [MAP-VALS #(= % 0)] NONE poly))  
 
-(defn grevlex [poly1 poly2]
-  (let [grade1 (reduce +' poly1)
-        grade2 (reduce +' poly2)
-        comp (- grade1 grade2)]
+(defn grevlex [term1 term2]
+  (let [grade1 (reduce +' term1)
+        grade2 (reduce +' term2)
+        comp (- grade2 grade1)] ;; total degree
     (if (not= 0 comp)
       comp
-      (loop [poly1 poly1
-             poly2 poly2]
-        (let [grade1 (first poly1)
-              grade2 (first poly2)
-              comp (- grade1 grade2)]
+      (loop [term1 term1
+             term2 term2]
+        (let [grade1 (last term1)
+              grade2 (last term2)
+              comp (- grade1 grade2)] ;; differs from grlex because terms are flipped from above
           (cond
-            (empty? poly1) 0
+            (empty? term1) 0
             (not= 0 comp) comp
-            :else (recur (next poly1)
-                         (next poly2))))))))
+            :else (recur (pop term1)
+                         (pop term2))))))))
