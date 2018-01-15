@@ -1,5 +1,6 @@
 (ns madhava.util
-  (:require [com.rpl.specter :refer :all]))
+  (:require [com.rpl.specter :refer :all]
+            [clojure.data.int-map :as i]))
 
 (defn add-dim [poly]
   ;; projects into next higher dimension by appending zero to keys
@@ -30,12 +31,12 @@
 (defn grevlex [term1 term2]
   (letfn [(grade [i]
             (let [dims (dims i)]
-              (loop [count dims
+              (loop [count (dec dims)
                      result 0]
-                (if (zero? count)
+                (if (>= 0 count)
                   result
                   (recur (inc count) (+ result
-                                        (int-nth i count)))))))]                      
+                                        (int-nth i count dims)))))))]                      
     (let [grade1 (grade term1)
           grade2 (grade term2)
           comp (- grade2 grade1)] ;; total degree
@@ -49,12 +50,22 @@
               (and
                (zero? dims1)
                (zero? dims2)) 0
-              (zero? dims1)  term1
-              (zero? dims2)  (- term2)
-              :else (let [grade1 (int-nth term1 (dec dims1))
-                          grade2 (int-nth term2 (dec dims2))
+              (zero? dims1)   term1
+              (zero? dims2)   (- term2)
+              :else (let [grade1 (int-nth term1 (dec dims1) dims1)
+                          grade2 (int-nth term2 (dec dims2) dims2)
                           comp (- grade1 grade2)] ;; differs from grlex because terms are flipped from above
                       (if (not= 0 comp)
                         comp
                         (recur (quot term1 10)
                                (quot term2 10)))))))))))
+
+(defn int-map [coll]
+  (let [result (atom (transient (i/int-map)))]
+    (do
+      (->> coll
+           (sort #(grevlex (first %1) (second %2)))
+           (map #(assoc! result (first %) (second %))))
+      (->> result
+           (deref)
+           (persistent!)))))
