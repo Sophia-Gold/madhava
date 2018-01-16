@@ -18,11 +18,15 @@
        (into (sorted-map-by grevlex))))
 
 (defn sparse-to-dense [poly]
-  (let [poly (into (sorted-map-by grevlex) poly)
-        order (keys poly)
-        diff-terms (concat (map #(dec (- %1 %2)) (next order) order) (list 0))]
-    (mapcat #(cons %2 (repeat %1 0)) diff-terms (vals poly))))
-      
+  ;; only for univariate polys
+  (let [order (->> poly
+                   (keys)
+                   (map first))
+        diff-terms (concat (map (comp dec -') order (next order))
+                           (list (last order)))]
+    (reverse
+     (mapcat #(cons %1 (repeat %2 0)) (vals poly) diff-terms ))))
+
 (defn exp-series []
   (->> (exp-series)
        (integrate-series)
