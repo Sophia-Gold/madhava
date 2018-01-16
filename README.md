@@ -161,17 +161,3 @@ Printing to a text file:
 ```
 => (print-tape "my_derivatives" (diff (i/int-map 0 7, 1 5, 10 3, 11 2) 2))
 ```
-
-Benchmarking:
-
-```
-;; 3 dimensions, 5 terms, 4 orders tested on 2.6GHz Core i7 
-=> (use 'criterium.core)
-=> (bench (diff (i/int-map 3 2, 40 1, 100 5, 212 8, 433 5) 4))
-Evaluation count : 552540 in 60 samples of 9209 calls.
-             Execution time mean : 108.857714 µs
-    Execution time std-deviation : 1.092826 µs
-   Execution time lower quantile : 107.648204 µs ( 2.5%)
-   Execution time upper quantile : 111.676714 µs (97.5%)
-                   Overhead used : 1.732578 ns
-```

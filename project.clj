@@ -11,5 +11,7 @@
   :profiles {:dev {:dependencies [[org.clojure/tools.nrepl "0.2.12"]
                                   [criterium "0.4.4"]]}
              :uberjar {:aot :all}}
+  :test-selectors {:default (complement :benchmark)
+                   :benchmark :benchmark}
   :main madhava.core
   :target-path "target/%s")
