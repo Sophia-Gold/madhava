@@ -3,7 +3,7 @@
   <groupId>madhava</groupId>
   <artifactId>madhava</artifactId>
   <packaging>jar</packaging>
-  <version>0.4.0</version>
+  <version>0.5.4-SNAPSHOT</version>
   <name>madhava</name>
   <description>automatic differentiation for partial differential equations</description>
   <licenses>
@@ -15,7 +15,7 @@
   <scm>
     <connection>scm:git:git://github.com/Sophia-Gold/Madhava-v2.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/Sophia-Gold/Madhava-v2.git</developerConnection>
-    <tag>0df5a80efe583a95a90fe186eafcc34d983f6c6e
+    <tag>dec62468266507a73d4e558dc3a971fb12e69283
 </tag>
     <url>https://github.com/Sophia-Gold/Madhava-v2</url>
   </scm>
@@ -57,12 +57,27 @@
         <enabled>true</enabled>
       </releases>
     </repository>
+    <repository>
+      <id>local</id>
+      <url>file:/home/sophia/Desktop/Clojure/Madhava2/maven_repository/</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+    </repository>
   </repositories>
   <dependencies>
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>clojure</artifactId>
-      <version>1.9.0-alpha14</version>
+      <version>1.9.0</version>
+    </dependency>
+    <dependency>
+      <groupId>io.rkn</groupId>
+      <artifactId>core.async</artifactId>
+      <version>0.1.0-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
@@ -70,19 +85,31 @@
       <version>0.2.4</version>
     </dependency>
     <dependency>
+      <groupId>clj-tuple</groupId>
+      <artifactId>clj-tuple</artifactId>
+      <version>0.2.2</version>
+    </dependency>
+    <dependency>
+      <groupId>local</groupId>
+      <artifactId>data.avl</artifactId>
+      <version>0.0.18-SNAPSHOT</version>
+    </dependency>
+    <dependency>
       <groupId>com.rpl</groupId>
       <artifactId>specter</artifactId>
-      <version>1.0.1</version>
+      <version>1.0.3</version>
     </dependency>
     <dependency>
       <groupId>org.clojure</groupId>
       <artifactId>tools.nrepl</artifactId>
       <version>0.2.12</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>criterium</groupId>
       <artifactId>criterium</artifactId>
       <version>0.4.4</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 </project>

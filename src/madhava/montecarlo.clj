@@ -1,4 +1,4 @@
-(ns Madhava.montecarlo)
+(ns madhava.montecarlo)
 
 (defn rand-pairs [low1 high1 low2 high2]
   (lazy-seq

@@ -1,5 +1,4 @@
-(ns minimax.core
-  (:require [madhava.core :refer :all]))
+(ns madhava.minimax)
 
 (defn root [f x epsilon]
  (let [x-prime (- x (/ (f x) ((derivative f) x)))]
