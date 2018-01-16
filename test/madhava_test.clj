@@ -73,15 +73,6 @@
   (is (= (divide (i/int-map 0 7, 1 5, 10 3, 11 2)
                  (i/int-map 0 7, 1 5, 10 3, 11 2))
          '({0 1} {}))))
-  ;; (is (= (divide (i/int-map 0 7, 1 5, 10 3, 11 2)
-  ;;                (i/int-map 0 1))
-  ;;        '({0 7, 1 5, 10 3, 11 2} {})))
-  ;; (is (= (divide (i/int-map 0 15, 1 3, 10 10, 11 2)
-  ;;                (i/int-map 0 5, 1 1))
-  ;;        '({0 3, 10 2} {})))
-  ;; (is (= (divide (i/int-map 0 15, 1 3, 10 10, 11 2)
-  ;;                (i/int-map 0 3, 10 2))
-  ;;        '({0 5, 1 1} {}))))
          
 (deftest compose-tests
   (is (= (compose (i/int-map 0 7, 1 5, 10 3, 11 2)
