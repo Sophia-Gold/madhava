@@ -60,4 +60,4 @@
           (map-indexed #(mul (nth grad-f %1) %2) g-f)
           (map-indexed #(mul (nth grad-g %1) %2) g-f))))
   ([f g & more]
-   (reduce rchain (rseq (conj more (rchain f g))))))  ;; reverse mode AD is just reversing a vector!
+   (reduce rchain (rseq (conj more (rchain f g))))))
