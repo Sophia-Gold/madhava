@@ -1,6 +1,7 @@
 (ns madhava.arithmetic
   (:require [madhava.util :refer :all]
-            [clojure.data.int-map :as i]))
+            [clojure.data.int-map :as i]
+            [clojure.core.reducers :as r]))
 
 (defn add
   ;; transducer
@@ -47,7 +48,10 @@
         (if (contains? @product vars) 
           (swap! product i/update! vars + coeff)
           (swap! product assoc! vars coeff))))
-     (denull (persistent! @product))))
+     (->> product
+          (deref)
+          (persistent!)
+          (denull))))
   ([poly1 poly2 & more]
    (reduce mul (mul poly1 poly2) more)))
 
@@ -60,17 +64,19 @@
      ([poly2 & more] (pmul poly1 poly2 more))))
   ([poly1 poly2]
    (let [*product* (agent (transient (i/int-map)))]
-     (dosync
-      (doall  ;; `for` is lazy so must to be forced for side-effects 
+     (do  ;; `for` is lazy so must to be forced for side-effects 
        (for [term1 poly1
              term2 poly2
              :let [vars (+ (key term1) (key term2))
                    coeff (* (val term1) (val term2))]]
          (if (contains? @*product* vars)
            (send *product* i/update! vars + coeff)
-           (send *product* assoc! vars coeff)))))
+           (send *product* assoc! vars coeff))))
      (await *product*)
-     (denull (persistent! @*product*))))
+     (->> *product*
+          (deref)
+          (persistent!)
+          (denull))))
   ([poly1 poly2 & more]
    (reduce pmul (pmul poly1 poly2) more)))
 
@@ -105,7 +111,7 @@
       (list (persistent! result)
             (->> remainder
                  (filter #(some? %))
-                 (into (i/int-map))))
+                 (r/fold i/merge conj)))
       (let [term1 (first f)
             term2 (first g)
             s-term (s-poly term1 term2)]

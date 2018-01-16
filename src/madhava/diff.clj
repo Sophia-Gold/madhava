@@ -3,6 +3,7 @@
             [madhava.arithmetic :refer :all]
             [clojure.pprint :refer [pprint]]
             [clojure.data.int-map :as i]
+            [clojure.core.reducers :as r]
             [com.rpl.specter :refer :all]))
 
 (defn diff [poly order]
@@ -60,8 +61,9 @@
             (str ~filename ".txt"))))
 
 (defn search-tape [tape val]
-  (into (i/int-map)
-        (select [ALL (fn [[k v]] (= v val))] tape)))
+  (->> tape
+       (select [ALL (fn [[k v]] (= v val))])
+       (r/fold i/merge conj)))
 
 (defn denull-tape [tape]
   ;; remove empty partials

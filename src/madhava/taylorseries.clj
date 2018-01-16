@@ -1,5 +1,6 @@
 (ns madhava.taylorseries
-  (:require [clojure.data.int-map :as i]))
+  (:require [clojure.data.int-map :as i]
+            [clojure.core.reducers :as r]))
 
 (defn integrate-series [s]
   (map / s (drop 1 (range))))
@@ -8,18 +9,18 @@
   (map - s))
 
 (defn dense-to-sparse [s]
+  ;; only for univariate polys
   (->> s
        (map-indexed #(if (not= %2 0) [%1 %2]))
-       (filterv some?)
-       (into (i/int-map))))
+       (filter some?)
+       (r/fold i/merge conj)))
 
 (defn sparse-to-dense [poly]
   ;; only for univariate polys
-  (let [poly (into (i/int-map) poly)
-        order (keys poly)
-        diff-terms (concat (map #(dec (- %1 %2)) (next order) order) (list 0))]
-    (mapcat #(cons %2 (repeat %1 0)) diff-terms (vals poly))))
-      
+  (let [order (keys poly)
+        diff-terms (cons (first order) (map (comp dec -') (next order) order))]
+    (mapcat #(concat (repeat %1 0) (list %2)) diff-terms (vals poly))))
+ 
 (defn exp-series []
   (->> (exp-series)
        (integrate-series)
