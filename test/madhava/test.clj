@@ -1,4 +1,4 @@
-(ns madhava-test
+(ns madhava.test
   (:require [clojure.test :refer :all]
             [madhava.arithmetic :refer :all]
             [madhava.comp :refer :all] 
