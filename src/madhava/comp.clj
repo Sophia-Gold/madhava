@@ -22,6 +22,31 @@
                                                    (repeat v g))  ;; raise g to exponent
                                             result)))))))
 
+(defn revert [f]
+  ;; compositional inverse
+  ;; aka Horner's rule
+  ;; see Knuth TAOCP vol 2 pp. 486-488
+  (let [dense-f (atom f)]
+    (run! #(let [term1 (first %1)]
+             (when (not= 0 (- (reduce +' term1)
+                              (reduce +' (first %2))))
+               (let [max-exp (max term1)]
+                 (swap! dense-f assoc
+                        (update term1 (.indexOf max-exp) (dec max-exp))
+                        0))))
+          f
+          (next f))
+    @dense-f))
+
+(defn ruffini-horner [f & rest]
+  (->> f
+       (map #(->> %2
+                  (revert)
+                  (reduce (fn [x y]
+                            (+ y (* x %1))))) ;; substitute values in rest args for variables in f
+            rest)
+       (reduce *'))) ;; multiply result of evaluating each variable
+       
 (defn chain
   ;; transducer form of compose
   ([f]  ;; completion
