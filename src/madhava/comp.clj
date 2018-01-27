@@ -8,11 +8,6 @@
             [clj-tuple :refer [vector]])
   (:refer-clojure :exclude [vector sorted-map-by]))
 
-(defn pow [f exp]
-  (->> f
-       (repeat exp)
-       (apply mul)))
-
 (defn compose
   "Functional composition. 
   Third argument is index of variable, starting from 1."

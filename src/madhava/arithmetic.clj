@@ -92,6 +92,17 @@
   ([poly1 poly2 & more]
    (reduce pmul (pmul poly1 poly2) more)))
 
+(defn pow
+  "Raises polynomial to exponent."
+  ([poly exp]
+   {:pre [(>= exp 0)]}
+   (cond
+     (> exp 1) (->> poly
+                    (repeat exp)
+                    (apply mul))
+     (= exp 1) poly
+     (zero? exp) {(into (vector) (repeat (count (ffirst poly)) 0)) 1})))
+
 (defn sqrt
   "Polynomial square root.
   Returns exponents as rationals and coefficients as doubles."
