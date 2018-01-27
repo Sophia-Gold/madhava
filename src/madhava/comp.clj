@@ -13,7 +13,10 @@
        (repeat exp)
        (apply mul)))
 
-(defn compose [f g idx]
+(defn compose
+  "Functional composition. 
+  Third argument is index of variable, starting from 1."
+  [f g idx]
   (let [idx (dec idx)]  ;; x == 1st var, 0th element in tuple 
     (loop [f f
            result {}]
@@ -29,10 +32,10 @@
                                                    (repeat v g))  ;; raise g to exponent
                                             result)))))))
 
-(defn revert [f]
-  ;; compositional inverse
-  ;; aka Horner's rule
-  ;; see Knuth TAOCP vol 2 pp. 486-488
+(defn revert 
+  "Computes compositional inverse, aka Horner's rule.
+  See Knuth TAOCP vol 2 pp. 486-488."
+  [f]
   (let [dense-f (atom f)]
     (run! #(let [term1 (first %1)]
              (when (not= 0 (- (reduce +' term1)
@@ -54,8 +57,9 @@
             rest)
        (reduce *'))) ;; multiply result of evaluating each variable
 
-(defn chain1 [f g idx]
-  ;; faster for univariate functions
+(defn chain1
+  "Faster implementation of chain rule for univariate functions."
+  [f g idx]
   (let [i (dec idx)]
     (-> f
         (grad)
@@ -64,7 +68,8 @@
         (mul (nth (grad g) i)))))
 
 (defn chain
-  ;; transducer
+  "Chain rule. 
+  Variadic, unary version returns transducer."
   ([f]  ;; completion
    (fn
      ([] f)
@@ -80,8 +85,7 @@
    (reduce chain (chain f g) more)))
 
 (defn chain-higher1
-  ;; Faà di Bruno's formula
-  ;; faster for univariate functions
+  "Faster implementation of higher-order chain rule for univariate functions."
   [f g order]
   (let [block-num (partitions order)
         block-size (bell order)
@@ -100,20 +104,20 @@
 ;; + 4 f''  * g'''   * g'
 ;; + 1f'    * g''''
 
-;; (defn chain-higher
-;;   ;; Faà di Bruno's formula
-;;   [f g order]
-;;   (let [dims (count (ffirst f))
-;;         n! (reduce *' (range 1 (dec order)))
-;;         m! '()
-;;         f' (vals (diff f order))
-;;         g' (vals (diff g order))
-;;         f*g (map-indexed #(compose %2 g (inc %1)) f')
-;;         g'' (->> g'
-;;                  (map #(mul %1 (repeat %1 (reduce *' %2)))
-;;                       g'
-;;                       (take 10 (mapcat #(repeat dims %) (range))))  ;; exponentiation by order
-;;                  (reduce *'))]
-;;     (scale (mul f*g g'')
-;;            (/ n! m!))))
+(defn chain-higher
+  "Higher-order chain rule using Faà di Bruno's formula."
+  [f g order]
+  (let [dims (count (ffirst f))
+        n! (reduce *' (range 1 (dec order)))
+        m! '()
+        f' (vals (diff f order))
+        g' (vals (diff g order))
+        f*g (map-indexed #(compose %2 g (inc %1)) f')
+        g'' (->> g'
+                 (map #(mul %1 (repeat %1 (reduce *' %2)))
+                      g'
+                      (take 10 (mapcat #(repeat dims %) (range))))  ;; exponentiation by order
+                 (reduce *'))]
+    (scale (mul f*g g'')
+           (/ n! m!))))
 

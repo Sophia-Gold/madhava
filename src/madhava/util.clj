@@ -1,14 +1,22 @@
 (ns madhava.util
   (:require [com.rpl.specter :refer :all]))
 
-(defn add-dim [poly]
-  ;; projects into next higher dimension by appending zero to tuples of variables
+(defn add-dim
+  "Projects a function into the next higher dimension
+  by appending zeros to tuples of variables."
+  [poly]
   (transform [MAP-KEYS] #(conj % 0) poly))
 
-(defn denull [poly]
+(defn denull
+  "Removes terms with zero coefficients."
+  [poly]
   (setval [MAP-VALS #(= % 0)] NONE poly))  
 
-(defn grevlex [term1 term2]
+(defn grevlex
+  "Comparator for tuple-keyed sorted-maps.
+  Uses graded reverse lexicographic ordering
+  for efficiency in computing Gröbner bases."
+  [term1 term2]
   (let [grade1 (reduce +' term1)
         grade2 (reduce +' term2)
         comp (- grade2 grade1)] ;; total degree

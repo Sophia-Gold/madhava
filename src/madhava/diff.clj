@@ -8,7 +8,15 @@
             [clj-tuple :refer [vector]])
   (:refer-clojure :exclude [vector]))
 
-(defn diff [poly order]
+(defn diff
+  "Computes all partials derivates of a function up to a given order.
+  Functions are represented as sorted-maps of monomials in graded 
+  reverse lexicographic order with tuples of exponents as keys and 
+  corresponding coefficients as values. Returns a map ('tape') with
+  integer keys where number of digits represents order and least
+  significant digits represent differentiated variables. Input is
+  limited to functions of at most 9 variables."
+  [poly order]
   (let [tape (atom (transient (i/int-map)))
         dims (count (ffirst poly))]
     (letfn [(partial-diff [poly key idx]
@@ -28,7 +36,15 @@
       (diff-loop (list poly 0) 0)
       (persistent! @tape))))
 
-(defn anti-diff [poly order]
+(defn anti-diff
+  "Computes all indefinite integrals of a function up to a given order.
+  Functions are represented as sorted-maps of monomials in graded 
+  reverse lexicographic order with tuples of exponents as keys and 
+  corresponding coefficients as values. Returns a map ('tape') with
+  integer keys where number of digits represents order and least
+  significant digits represent differentiated variables. Input is
+  limited to functions of at most 9 variables."
+  [poly order]
   (let [tape (atom (transient (i/int-map)))
         dims (count (ffirst poly))]
     (letfn [(partial-diff [poly key idx]
@@ -48,7 +64,9 @@
       (diff-loop (list poly 0) 0)
       (persistent! @tape))))
 
-(defn pdiff [poly order]
+(defn pdiff
+  "Experimental - parallel version of `diff` using agents."
+  [poly order]
   (let [*tape* (agent (transient (i/int-map)))
         dims (count (ffirst poly))]
     (letfn [(partial-diff [poly key idx]
@@ -70,7 +88,9 @@
       (await *tape*)
       (persistent! @*tape*))))
 
-(defn anti-pdiff [poly order]
+(defn anti-pdiff
+  "Experimental - parallel version of `anti-diff` using agents."
+  [poly order]
   (let [*tape* (agent (transient (i/int-map)))
         dims (count (ffirst poly))]
     (letfn [(partial-diff [poly key idx]
@@ -91,31 +111,51 @@
       (diff-loop (list poly 0) 0)
       (persistent! @*tape*))))
 
-(defn vector-diff [vf order]
+(defn vector-diff
+  "Computes the partial derivatives of a vector in Cartesian form.
+  Coordinates are processed in parallel.
+  Returns a list of int-maps."
+  [vf order]
   (pmap #(diff % order) vf))
 
-(defn vector-antidiff [vf order]
+(defn vector-antidiff
+   "Computes the indefinite integrals of a vector in Cartesian form.
+  Coordinates are processed in parallel.
+  Returns a list of int-maps."
+  [vf order]
   (pmap #(anti-diff % order) vf))
 
-(defmacro print-tape [filename tape]
+(defmacro print-tape
+  "Prints tape to text-file."
+  [filename tape]
   `(pprint ~tape
            (clojure.java.io/writer
             (str ~filename ".txt"))))
 
-(defn search-tape [tape val]
+(defn search-tape
+  "Searches tape for a particular derivative.
+  Will return multiple results if present."
+  [tape val]
   (->> tape
        (select [ALL (fn [[k v]] (= v val))])
        (r/fold i/merge conj)))
 
-(defn denull-tape [tape]
-  ;; remove empty partials
+(defn denull-tape
+  "Removes empty partials from tape."
+  [tape]
   (setval [MAP-VALS #(= {} %)] NONE tape))
 
-(defn transform-tape [tape f]
+(defn transform-tape
+  "Applies a function to all derivatives on tape."
+  [tape f]
   (transform MAP-VALS f tape))
 
-(defn add-tapes [& tapes]
+(defn add-tapes
+  "Takes multiple tapes and returns one with sums of corresponding derivatives."
+  [& tapes]
   (apply merge-with add tapes))
 
-(defn mul-tapes [& tapes]
+(defn mul-tapes
+  "Takes multiple tapes and returns one with products of corresponding derivatives."
+  [& tapes]
   (apply merge-with mul tapes))

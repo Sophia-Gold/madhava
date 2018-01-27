@@ -5,7 +5,8 @@
   (:refer-clojure :exclude [vector sorted-map-by]))
 
 (defn add
-  ;; transducer
+  "Polynomial addition.
+  Variadic, unary version returns transducer."
   ([poly1]  ;; completion
    (fn
      ([] poly1)
@@ -18,13 +19,17 @@
   ([poly1 poly2 & more]
    (reduce add (add poly1 poly2) more)))
 
-(defn negate [poly]
+(defn negate
+  "Negates all terms."
+  [poly]
   (->> poly
        (map #(update % 1 -))
        (into {})))
 
 (defn sub
-  ;; consistent with scalar subtraction: arity 1 negates polynomial rather than transducer
+  "Polynomial subtraction.
+  Consistent with scalar subtraction: 
+  arity 1 applies negation rather than returning transducer."
   ([poly] (negate poly))
   ([poly1 poly2]
    (add poly1 (negate poly2)))
@@ -38,7 +43,8 @@
        (denull)))
 
 (defn mul
-  ;; transducer
+  "Polynomial multiplication.
+  Variadic, unary version returns transducer."
   ([poly1]  ;; completion
    (fn
      ([] poly1)
@@ -62,7 +68,7 @@
    (reduce mul (mul poly1 poly2) more)))
 
 (defn pmul
-  ;; transducer
+  "Experimental - parallel version of `mul` using agents."
   ([poly1]  ;; completion
    (fn
      ([] poly1)
@@ -86,14 +92,20 @@
   ([poly1 poly2 & more]
    (reduce pmul (pmul poly1 poly2) more)))
 
-(defn sqrt [poly]
+(defn sqrt
+  "Polynomial square root.
+  Returns exponents as rationals and coefficients as doubles."
+  [poly]
   (->> poly
        (map (fn [v]
               {(mapv #(/ % 2) (first v))
                (Math/sqrt (second v))}))
        (into {})))
 
-(defn compl [term1 term2] 
+(defn compl
+  "Computes the complement of two monomials.
+  Similar to GCD over a Euclidean domain."
+  [term1 term2]
   (map (fn [x y]
          (cond
            (and (zero? x) (not= 0 y)) nil
@@ -102,7 +114,9 @@
        term1
        term2))
      
-(defn s-poly [f g]
+(defn s-poly
+  "Computes S-polynomial for finding Gröbner bases."
+  [f g]
   (let [f-vars (first f)
         g-vars (first g)
         lcm (compl f-vars g-vars)]
@@ -110,10 +124,11 @@
       {(vec lcm)
        (/ (second f) (second g))})))
 
-(defn divide [f g]
-  ;; *not* transducer! binary only
-  ;; returns a tuple of quotient and remainder
-  ;; not the inverse of multiplication (welcome to computer algebra)
+(defn divide
+  "Polynomial long division using Buchberger's algorithm.
+  Binary only, returns a tuple of quotient and remainder.
+  Not guaranteed to be the inverse of multiplication."
+  [f g]
   (loop [f f
          g g
          result (transient {})
