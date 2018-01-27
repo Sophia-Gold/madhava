@@ -1,11 +1,18 @@
 (ns madhava.comp
   (:require [madhava.arithmetic :refer :all]
+            [madhava.diff :refer :all]
             [madhava.util :refer :all]
+            [madhava.taylorseries :refer :all]
             [madhava.vectormath :refer :all]
             [clojure.data.avl :refer [sorted-map-by]]
             [clj-tuple :refer [vector]])
   (:refer-clojure :exclude [vector sorted-map-by]))
-  
+
+(defn pow [f exp]
+  (->> f
+       (repeat exp)
+       (apply mul)))
+
 (defn compose [f g idx]
   (let [idx (dec idx)]  ;; x == 1st var, 0th element in tuple 
     (loop [f f
@@ -71,3 +78,42 @@
         (reduce add)))
   ([f g & more]
    (reduce chain (chain f g) more)))
+
+(defn chain-higher1
+  ;; Faà di Bruno's formula
+  ;; faster for univariate functions
+  [f g order]
+  (let [block-num (partitions order)
+        block-size (bell order)
+        f' (diff f order)
+        g' (diff g order)]
+    (mul (reduce add (map #(compose (get f' %) g 1)
+                          (range 1 (inc block-num))))
+         (reduce mul (map #(get g' %1)
+                          (range 1 (inc block-size)))))))
+
+;; Example:
+;; (comp f g)''''
+;; = 1f'''' * g'^4
+;; + 6f'''  * g''    * g'^2
+;; + 3 f''  * g''^2
+;; + 4 f''  * g'''   * g'
+;; + 1f'    * g''''
+
+;; (defn chain-higher
+;;   ;; Faà di Bruno's formula
+;;   [f g order]
+;;   (let [dims (count (ffirst f))
+;;         n! (reduce *' (range 1 (dec order)))
+;;         m! '()
+;;         f' (vals (diff f order))
+;;         g' (vals (diff g order))
+;;         f*g (map-indexed #(compose %2 g (inc %1)) f')
+;;         g'' (->> g'
+;;                  (map #(mul %1 (repeat %1 (reduce *' %2)))
+;;                       g'
+;;                       (take 10 (mapcat #(repeat dims %) (range))))  ;; exponentiation by order
+;;                  (reduce *'))]
+;;     (scale (mul f*g g'')
+;;            (/ n! m!))))
+

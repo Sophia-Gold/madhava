@@ -10,6 +10,15 @@
 (defn negate-series [s]
   (map - s))
 
+(defn mul-series [s1 s2]
+  ;; Cauchy product
+  (cons (* (first s1)
+           (first s2))
+        (lazy-seq
+         (map +'
+              (map * (rest s2) (repeat (first s1)))
+              (mul-series (rest s1) s2)))))
+
 (defn dense-to-sparse [s]
   ;; only for univariate polys
   (->> s
@@ -58,3 +67,25 @@
   (->> (sinh-series)
        (integrate-series)
        (lazy-cat [1])))
+
+(defn partitions
+  ;; partition function
+  [n]  
+  (letfn [(p [n]
+            (cons 1
+                  (lazy-seq
+                   (map +'
+                        (p (+ n 1))
+                        (concat (repeat (- n 1) 0) (p n))))))]
+    (nth (p 1) (dec n))))
+
+(defn bell
+  ;; Bell numbers for n > 0
+  [n]
+  (int
+   (Math/ceil
+    (/ (reduce +'
+               (map #(/ (Math/pow % n)
+                        (reduce *' (range 1 (inc %)))) ;; factorial
+                    (range (* 2 n))))
+       (Math/E)))))
