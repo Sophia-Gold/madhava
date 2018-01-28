@@ -7,7 +7,8 @@
                  [org.clojure/data.int-map "0.2.4"]
                  [clj-tuple "0.2.2"]
                  [local/data.avl "0.0.18-SNAPSHOT"]
-                 [com.rpl/specter "1.0.3"]]
+                 [com.rpl/specter "1.0.3"]
+                 [org.clojure/math.combinatorics "0.1.4"]]
   :profiles {:dev {:dependencies [[org.clojure/tools.nrepl "0.2.12"]
                                   [criterium "0.4.4"]]}
              :uberjar {:aot :all}}

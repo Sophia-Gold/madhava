@@ -2,8 +2,8 @@
   (:require [madhava.arithmetic :refer :all]
             [madhava.diff :refer :all]
             [madhava.util :refer :all]
-            [madhava.taylorseries :refer :all]
             [madhava.vectormath :refer :all]
+            [clojure.math.combinatorics :as combo]
             [clojure.data.avl :refer [sorted-map-by]]
             [clj-tuple :refer [vector]])
   (:refer-clojure :exclude [vector sorted-map-by]))
@@ -82,37 +82,48 @@
 (defn chain-higher1
   "Faster implementation of higher-order chain rule for univariate functions."
   [f g order]
-  (let [block-num (partitions order)
-        block-size (bell order)
-        f' (diff f order)
-        g' (diff g order)]
-    (mul (reduce add (map #(compose (get f' %) g 1)
-                          (range 1 (inc block-num))))
-         (reduce mul (map #(get g' %1)
-                          (range 1 (inc block-size)))))))
+  (let [f' (diff f order)
+        g' (diff g order)
+        partitions (->> (repeat order 1)
+                        (combo/partitions)
+                        (map (fn [x] (map #(reduce +' %) x)))
+                        (reverse)) 
+        coeff (map (fn [p] (->> order     ;; number of partitions of set with elements
+                               (inc)     ;; equal to order into sets of x elements
+                               (range 1)
+                               (combo/partitions)
+                               (map sort)  ;; TO DO: don't sort
+                               (filter #(= (map count %) p))
+                               (count))) 
+                   (map sort partitions))] ;; TO DO: don't sort
+    ;; (do (println partitions)
+    ;;     (println coeff)
+    ;;     (println (map frequencies partitions)))))
+    (reduce add
+            (map #(mul {[0] %1}
+                       (compose (get f' %2) g 1)
+                       (reduce mul
+                               (map (fn [x] (pow (get g' (first x))
+                                                (second x)))
+                                    %3)))
+                 coeff
+                 (reverse (range 1 (inc order))) 
+                 (map frequencies partitions)))))
 
-;; Example:
-;; (comp f g)''''
-;; = 1f'''' * g'^4
-;; + 6f'''  * g''    * g'^2
-;; + 3 f''  * g''^2
-;; + 4 f''  * g'''   * g'
-;; + 1f'    * g''''
-
-(defn chain-higher
-  "Higher-order chain rule using Faà di Bruno's formula."
-  [f g order]
-  (let [dims (count (ffirst f))
-        n! (reduce *' (range 1 (dec order)))
-        m! '()
-        f' (vals (diff f order))
-        g' (vals (diff g order))
-        f*g (map-indexed #(compose %2 g (inc %1)) f')
-        g'' (->> g'
-                 (map #(mul %1 (repeat %1 (reduce *' %2)))
-                      g'
-                      (take 10 (mapcat #(repeat dims %) (range))))  ;; exponentiation by order
-                 (reduce *'))]
-    (scale (mul f*g g'')
-           (/ n! m!))))
+;; (defn chain-higher
+;;   "Higher-order chain rule using Faà di Bruno's formula."
+;;   [f g order]
+;;   (let [dims (count (ffirst f))
+;;         n! (reduce *' (range 1 (dec order)))
+;;         m! '()
+;;         f' (vals (diff f order))
+;;         g' (vals (diff g order))
+;;         f*g (map-indexed #(compose %2 g (inc %1)) f')
+;;         g'' (->> g'
+;;                  (map #(mul %1 (repeat %1 (reduce *' %2)))
+;;                       g'
+;;                       (take 10 (mapcat #(repeat dims %) (range))))  ;; exponentiation by order
+;;                  (reduce *'))]
+;;     (scale (mul f*g g'')
+;;            (/ n! m!))))
 
