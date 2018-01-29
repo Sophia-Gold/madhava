@@ -79,15 +79,17 @@
   ([f g & more]
    (reduce chain (chain f g) more)))
 
+(defn partition-set [n]
+  (->> (repeat n 1)
+       (combo/partitions)
+       (map (fn [x] (map #(reduce +' %) x)))))
+
 (defn chain-higher1
   "Faster implementation of higher-order chain rule for univariate functions."
   [f g order]
   (let [f' (diff f order)
         g' (diff g order)
-        partitions (->> (repeat order 1)
-                        (combo/partitions)
-                        (map (fn [x] (map #(reduce +' %) x)))
-                        (reverse)) 
+        partitions (reverse (partition-set order)) 
         coeff (map (fn [p] (->> order     ;; number of partitions of set with elements
                                (inc)     ;; equal to order into sets of x elements
                                (range 1)
@@ -96,9 +98,6 @@
                                (filter #(= (map count %) p))
                                (count))) 
                    (map sort partitions))] ;; TO DO: don't sort
-    ;; (do (println partitions)
-    ;;     (println coeff)
-    ;;     (println (map frequencies partitions)))))
     (reduce add
             (map #(mul {[0] %1}
                        (compose (get f' %2) g 1)
@@ -110,20 +109,34 @@
                  (reverse (range 1 (inc order))) 
                  (map frequencies partitions)))))
 
-;; (defn chain-higher
-;;   "Higher-order chain rule using Faà di Bruno's formula."
-;;   [f g order]
-;;   (let [dims (count (ffirst f))
-;;         n! (reduce *' (range 1 (dec order)))
-;;         m! '()
-;;         f' (vals (diff f order))
-;;         g' (vals (diff g order))
-;;         f*g (map-indexed #(compose %2 g (inc %1)) f')
-;;         g'' (->> g'
-;;                  (map #(mul %1 (repeat %1 (reduce *' %2)))
-;;                       g'
-;;                       (take 10 (mapcat #(repeat dims %) (range))))  ;; exponentiation by order
-;;                  (reduce *'))]
-;;     (scale (mul f*g g'')
-;;            (/ n! m!))))
-
+(defn chain-higher
+  "Higher-order chain rule using Faà di Bruno's formula."
+  [f g order idx]
+  (let [f' (diff f order)
+        g' (diff g order)
+        dims (count (ffirst f))]
+    (reduce add
+            (map (fn [degree partitions]
+                   (let [f-partials (compose (get f' (->> degree 
+                                                          (range)
+                                                          (map #(* (int (Math/pow 10 %)) idx))
+                                                          (reduce +')))
+                                             g idx)
+                         g-idxs (map (fn [x] (->> x
+                                                 (range)
+                                                 (map (fn [k] (map #(* (int (Math/pow 10 k)) %) 
+                                                                  (range 1 (inc dims)))))
+                                                 (apply map +')))
+                                     partitions)
+                         g-partials (if (< 1 (count g-idxs))
+                                      (apply (fn [x] (map-indexed #(sort
+                                                                   (assoc (into (vector) (first g-idxs)) %1 %2))
+                                                                 x))
+                                             (next g-idxs))
+                                      g-idxs)] 
+                     (->> g-partials
+                          (mapcat (fn [k] (map #(get g' %) k)))
+                          (map #(mul f-partials %))
+                          (reduce add))))
+                 (range 1 (inc order))
+                 (map distinct (partition-set order))))))

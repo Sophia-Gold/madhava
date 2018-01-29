@@ -86,25 +86,3 @@
   (->> (sinh-series)
        (integrate-series)
        (lazy-cat [1])))
-
-(defn partitions
-  "Partition function for positive integers."
-  [n]  
-  (letfn [(p [n]
-            (cons 1
-                  (lazy-seq
-                   (map +'
-                        (p (+ n 1))
-                        (concat (repeat (- n 1) 0) (p n))))))]
-    (nth (p 1) (dec n))))
-
-(defn bell
-  "Bell numbers: partitions of a set containing n elements where n > 0."
-  [n]
-  (int
-   (Math/ceil
-    (/ (reduce +'
-               (map #(/ (Math/pow % n)
-                        (reduce *' (range 1 (inc %)))) ;; factorial
-                    (range (* 2 n))))
-       (Math/E)))))
