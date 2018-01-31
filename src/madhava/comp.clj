@@ -27,30 +27,41 @@
                                                    (repeat v g))  ;; raise g to exponent
                                             result)))))))
 
-(defn revert 
+(defn revert1
   "Computes compositional inverse, aka Horner's rule.
+  Only for univariate polynomials.
   See Knuth TAOCP vol 2 pp. 486-488."
-  [f]
-  (let [dense-f (atom f)]
-    (run! #(let [term1 (first %1)]
-             (when (not= 0 (- (reduce +' term1)
-                              (reduce +' (first %2))))
-               (let [max-exp (max term1)]
-                 (swap! dense-f assoc
-                        (update term1 (.indexOf max-exp) (dec max-exp))
-                        0))))
-          f
-          (next f))
-    @dense-f))
+  [f] 
+  (loop [f f
+         result (transient (vector))] 
+    (if (empty? (next f))
+      (-> result
+          (conj! (second (first f)))
+          (persistent!))
+      (let [term (first f)
+            var (ffirst term)
+            coeff (second term)]
+        (if (zero? (- var (ffirst (second f))))
+          (recur (next f) result) 
+          (recur (next f) (conj! result coeff)))))))
 
-(defn ruffini-horner [f & rest]
+(defn eval-horner
+  "Quickly evaluates a univariate polynomial in Horner's form."
+  [f x]
   (->> f
-       (map #(->> %2
-                  (revert)
-                  (reduce (fn [x y]
-                            (+ y (* x %1))))) ;; substitute values in rest args for variables in f
-            rest)
-       (reduce *'))) ;; multiply result of evaluating each variable
+       (revert1)
+       (reduce #(+ (* %1 x) %2))))
+
+(defn eval-poly
+  "Evaluates a polynomial function at a vector of points."
+  [f points]
+  (let [vars (keys f)
+        coeffs (vals f)]
+    (->> vars
+         (map (fn [v] (map #(Math/pow %1 %2) points v)))  ;; substitute points for variables in f 
+         (map #(reduce *' %))  ;; multiply vars in monomial
+         (map *' coeffs)  ;; multiply by coefficients   
+         (reduce +'))))  ;; sum monomials
 
 (defn chain1
   "Faster implementation of chain rule for univariate functions."
