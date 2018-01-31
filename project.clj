@@ -1,4 +1,4 @@
-(defproject madhava "0.5.4-SNAPSHOT"
+(defproject madhava "0.5.5-SNAPSHOT"
   :description "automatic differentiation for partial differential equations"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
