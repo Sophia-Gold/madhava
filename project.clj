@@ -5,6 +5,7 @@
   :dependencies [[org.clojure/clojure "1.9.0"]
                  [io.rkn/core.async "0.1.0-SNAPSHOT"]
                  [org.clojure/data.int-map "0.2.4"]
+                 [primitive-math "0.1.6"]
                  [clj-tuple "0.2.2"]
                  [local/data.avl "0.0.18-SNAPSHOT"]
                  [com.rpl/specter "1.0.3"]
@@ -16,4 +17,6 @@
                    :benchmark :benchmark}
   :repositories {"local" ~(str (.toURI (java.io.File. "maven_repository")))}
   :main madhava
-  :target-path "target/%s")
+  :target-path "target/%s"
+  :global-vars {*warn-on-reflection* true
+                *unchecked-math* :warn-on-boxed})

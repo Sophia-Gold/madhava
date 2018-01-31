@@ -1,8 +1,12 @@
 (ns madhava.arithmetic
   (:require [madhava.util :refer :all]
+            [clojure.core :as cc]
             [clojure.data.avl :refer [sorted-map-by]]
+            [primitive-math]
             [clj-tuple :refer [vector]])
   (:refer-clojure :exclude [vector sorted-map-by]))
+
+(primitive-math/use-primitive-operators)
 
 (defn add
   "Polynomial addition.
@@ -23,7 +27,7 @@
   "Negates all terms."
   [poly]
   (->> poly
-       (map #(update % 1 -))
+       (map #(update % 1 -'))
        (into {})))
 
 (defn sub
@@ -38,7 +42,7 @@
 
 (defn scale [poly scalar]
   (->> poly
-       (map #(update % 1 * scalar))
+       (map #(update % 1 *' scalar))
        (into {})
        (denull)))
 

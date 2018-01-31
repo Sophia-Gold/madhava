@@ -1,5 +1,9 @@
 (ns madhava.util
-  (:require [com.rpl.specter :refer :all]))
+  (:require [clojure.core :as cc]
+            [com.rpl.specter :refer :all]
+            [primitive-math]))
+
+(primitive-math/use-primitive-operators)
 
 (defn add-dim
   "Projects a function into the next higher dimension

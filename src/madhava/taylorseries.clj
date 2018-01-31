@@ -1,18 +1,22 @@
 (ns madhava.taylorseries
   (:require [madhava.util :refer :all]
+            [clojure.core :as cc]
             [clojure.data.avl :refer [sorted-map-by]]
+            [primitive-math]
             [clj-tuple :refer [vector]])
   (:refer-clojure :exclude [vector sorted-map-by]))
+
+(primitive-math/use-primitive-operators)
 
 (defn integrate-series
   "Computes integral of formal power series, generating functions, and dense univariate polynomials."
   [s]
-  (map / s (drop 1 (range))))
+  (map cc// s (drop 1 (range))))
 
 (defn negate-series
   "Negates all terms in series."
   [s]
-  (map - s))
+  (map -' s))
 
 (defn mul-series
   "Cauchy product."
@@ -21,7 +25,7 @@
            (first s2))
         (lazy-seq
          (map +'
-              (map * (rest s2) (repeat (first s1)))
+              (map *' (rest s2) (repeat (first s1)))
               (mul-series (rest s1) s2)))))
 
 (defn dense-to-sparse
@@ -38,7 +42,7 @@
   (let [order (->> poly
                    (keys)
                    (map first))
-        diff-terms (concat (map (comp dec -') order (next order))
+        diff-terms (concat (map (comp cc/dec -') order (next order))
                            (list (last order)))]
     (reverse
      (mapcat #(cons %1 (repeat %2 0)) (vals poly) diff-terms ))))

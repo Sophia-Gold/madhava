@@ -3,10 +3,14 @@
             [madhava.diff :refer :all]
             [madhava.util :refer :all]
             [madhava.vectormath :refer :all]
-            [clojure.math.combinatorics :as combo]
+            [clojure.core :as cc]
             [clojure.data.avl :refer [sorted-map-by]]
+            [clojure.math.combinatorics :as combo]
+            [primitive-math]
             [clj-tuple :refer [vector]])
   (:refer-clojure :exclude [vector sorted-map-by]))
+
+(primitive-math/use-primitive-operators)
 
 (defn compose
   "Functional composition. 

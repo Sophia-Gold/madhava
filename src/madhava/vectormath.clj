@@ -1,9 +1,13 @@
 (ns madhava.vectormath
   (:require [madhava.diff :refer :all]
             [madhava.arithmetic :refer :all]
+            [clojure.core :as cc]
             [com.rpl.specter :refer :all]
+            [primitive-math]
             [clj-tuple :refer [vector]])
   (:refer-clojure :exclude [vector]))
+
+(primitive-math/use-primitive-operators)
 
 (defn jacobian
   "Computes Jacobian matrix. 

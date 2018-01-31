@@ -1,12 +1,16 @@
 (ns madhava.diff
   (:require [madhava.arithmetic :refer :all]
             [madhava.util :refer :all]
-            [clojure.pprint :refer [pprint]]
+            [clojure.core :as cc]
+            [clojure.core.reducers :as r] 
             [clojure.data.int-map :as i]
-            [clojure.core.reducers :as r]
+            [clojure.pprint :refer [pprint]]
             [com.rpl.specter :refer :all]
+            [primitive-math]
             [clj-tuple :refer [vector]])
   (:refer-clojure :exclude [vector]))
+
+(primitive-math/use-primitive-operators)
 
 (defn diff
   "Computes all partials derivates of a function up to a given order.
@@ -23,7 +27,7 @@
               (let [partial (transform [ALL] (fn [[k v]]
                                                (let [var (nth k idx)]
                                                  (when (not (zero? var))
-                                                   [(update k idx dec)
+                                                   [(update k idx cc/dec)
                                                     (* v var)])))
                                        poly)]
                 (swap! tape assoc! key partial)
@@ -51,7 +55,7 @@
               (let [partial (transform [ALL] (fn [[k v]]
                                                (let [var (nth k idx)]
                                                  (when (not (zero? var))
-                                                   [(update k idx inc)
+                                                   [(update k idx cc/inc)
                                                     (/ v (inc var))])))
                                        poly)]
                 (swap! tape assoc! key partial)
@@ -73,7 +77,7 @@
               (let [partial (transform [ALL] (fn [[k v]]
                                                (let [var (nth k idx)]
                                                  (when (not (zero? var))
-                                                   [(update k idx dec)
+                                                   [(update k idx cc/dec)
                                                     (* v var)])))
                                        poly)]
                 (send *tape* assoc! key partial)
@@ -97,7 +101,7 @@
               (let [partial (transform [ALL] (fn [[k v]]
                                                (let [var (nth k idx)]
                                                  (when (not (zero? var))
-                                                   [(update k idx inc)
+                                                   [(update k idx cc/inc)
                                                     (/ v (inc var))])))
                                        poly)]
                 (send *tape* assoc! key partial)
