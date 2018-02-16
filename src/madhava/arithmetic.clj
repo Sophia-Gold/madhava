@@ -1,8 +1,12 @@
 (ns madhava.arithmetic
   (:require [madhava.util :refer :all]
+            [clojure.core :as cc]
             [clojure.data.avl :refer [sorted-map-by]]
+            [primitive-math]
             [clj-tuple :refer [vector]])
   (:refer-clojure :exclude [vector sorted-map-by]))
+
+(primitive-math/use-primitive-operators)
 
 (defn add
   "Polynomial addition.
@@ -23,7 +27,7 @@
   "Negates all terms."
   [poly]
   (->> poly
-       (map #(update % 1 -))
+       (map #(update % 1 -'))
        (into {})))
 
 (defn sub
@@ -38,7 +42,7 @@
 
 (defn scale [poly scalar]
   (->> poly
-       (map #(update % 1 * scalar))
+       (map #(update % 1 *' scalar))
        (into {})
        (denull)))
 
@@ -56,9 +60,9 @@
       (for [term1 poly1
             term2 poly2
             :let [vars (mapv +' (key term1) (key term2))
-                  coeff (* (val term1) (val term2))]]
+                  coeff (* (long (val term1)) (long (val term2)))]]
         (if (contains? @product vars)
-          (swap! product assoc! vars (+ (get @product vars) coeff))
+          (swap! product assoc! vars (+ (long (get @product vars)) coeff))
           (swap! product assoc! vars coeff))))
      (->> product
           (deref)
@@ -80,9 +84,9 @@
       (for [term1 poly1
             term2 poly2
             :let [vars (mapv +' (key term1) (key term2))
-                  coeff (* (val term1) (val term2))]]
+                  coeff (* (long (val term1)) (long (val term2)))]]
         (if (contains? @*product* vars) 
-          (send *product* assoc! vars (+ (get @*product* vars) coeff))
+          (send *product* assoc! vars (+ (long (get @*product* vars)) coeff))
           (send *product* assoc! vars coeff))))
      (await *product*)
      (->> *product*
@@ -94,7 +98,7 @@
 
 (defn pow
   "Raises polynomial to exponent."
-  ([poly exp]
+  ([poly ^long exp]
    {:pre [(>= exp 0)]}
    (cond
      (> exp 1) (->> poly
@@ -109,7 +113,7 @@
   [poly]
   (->> poly
        (map (fn [v]
-              {(mapv #(/ % 2) (first v))
+              {(mapv #(/ (long %) 2) (first v))
                (Math/sqrt (second v))}))
        (into {})))
 
@@ -117,7 +121,7 @@
   "Computes the complement of two monomials.
   Similar to GCD over a Euclidean domain."
   [term1 term2]
-  (map (fn [x y]
+  (map (fn [^long x ^long y]
          (cond
            (and (zero? x) (not= 0 y)) nil
            (< x y) nil
@@ -133,7 +137,7 @@
         lcm (compl f-vars g-vars)]
     (if (not-any? nil? lcm)
       {(vec lcm)
-       (/ (second f) (second g))})))
+       (cc// (second f) (second g))})))
 
 (defn divide
   "Polynomial long division using Buchberger's algorithm.

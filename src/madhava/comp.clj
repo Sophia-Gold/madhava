@@ -3,22 +3,26 @@
             [madhava.diff :refer :all]
             [madhava.util :refer :all]
             [madhava.vectormath :refer :all]
-            [clojure.math.combinatorics :as combo]
+            [clojure.core :as cc]
             [clojure.data.avl :refer [sorted-map-by]]
+            [clojure.math.combinatorics :as combo]
+            [primitive-math]
             [clj-tuple :refer [vector]])
   (:refer-clojure :exclude [vector sorted-map-by]))
+
+(primitive-math/use-primitive-operators)
 
 (defn compose
   "Functional composition. 
   Third argument is index of variable, starting from 1."
-  [f g idx]
+  [f g ^long idx]
   (let [idx (dec idx)]  ;; x == 1st var, 0th element in tuple 
     (loop [f f
            result {}]
       (let [term (first f)
             vars (first term)
             coeff (second term)
-            v (nth vars idx)]
+            v (long (nth vars idx))]
         (cond
           (nil? term) (into (sorted-map-by grevlex) result)
           (zero? v) (recur (dissoc f vars) (add {vars coeff} result))
@@ -41,7 +45,7 @@
       (let [term (first f)
             var (ffirst term)
             coeff (second term)]
-        (if (zero? (- var (ffirst (second f))))
+        (if (zero? (- (long var) (long (ffirst (second f)))))
           (recur (next f) result) 
           (recur (next f) (conj! result coeff)))))))
 
@@ -50,7 +54,7 @@
   [f x]
   (->> f
        (revert1)
-       (reduce #(+ (* %1 x) %2))))
+       (reduce #(cc/+' (cc/*' %1 x) %2))))
 
 (defn eval-poly
   "Evaluates a polynomial function at a vector of points."
@@ -65,7 +69,7 @@
 
 (defn chain1
   "Faster implementation of chain rule for univariate functions."
-  [f g idx]
+  [f g ^long idx]
   (let [i (dec idx)]
     (-> f
         (grad)
@@ -84,7 +88,7 @@
   ([f g] 
    (->> f
         (grad)
-        (map-indexed #(compose %2 g (inc %1)))
+        (map-indexed #(compose %2 g (inc (long %1))))
         (map mul (grad g))
         (reduce add)))
   ([f g & more]
@@ -97,7 +101,7 @@
 
 (defn chain-higher1
   "Faster implementation of higher-order chain rule for univariate functions."
-  [f g order]
+  [f g ^long order]
   (let [f' (diff f order)
         g' (diff g order)
         partitions (reverse (partition-set order)) 
@@ -122,7 +126,7 @@
 
 (defn chain-higher
   "Higher-order chain rule using Faà di Bruno's formula."
-  [f g order idx]
+  [f g ^long order ^long idx]
   (let [f' (diff f order)
         g' (diff g order)
         dims (count (ffirst f))]
@@ -130,12 +134,12 @@
             (map (fn [degree partitions]
                    (let [f-partials (compose (get f' (->> degree 
                                                           (range)
-                                                          (map #(* (int (Math/pow 10 %)) idx))
+                                                          (map #(* (long (Math/pow 10 %)) idx))
                                                           (reduce +')))
                                              g idx)
                          g-idxs (map (fn [x] (->> x
                                                  (range)
-                                                 (map (fn [k] (map #(* (int (Math/pow 10 k)) %) 
+                                                 (map (fn [k] (map #(* (long (Math/pow 10 k)) (long %)) 
                                                                   (range 1 (inc dims)))))
                                                  (apply map +')))
                                      partitions)

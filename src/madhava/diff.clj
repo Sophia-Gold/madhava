@@ -1,12 +1,16 @@
 (ns madhava.diff
   (:require [madhava.arithmetic :refer :all]
             [madhava.util :refer :all]
-            [clojure.pprint :refer [pprint]]
+            [clojure.core :as cc]
+            [clojure.core.reducers :as r] 
             [clojure.data.int-map :as i]
-            [clojure.core.reducers :as r]
+            [clojure.pprint :refer [pprint]]
             [com.rpl.specter :refer :all]
+            [primitive-math]
             [clj-tuple :refer [vector]])
   (:refer-clojure :exclude [vector]))
+
+(primitive-math/use-primitive-operators)
 
 (defn diff
   "Computes all partials derivates of a function up to a given order.
@@ -16,21 +20,24 @@
   integer keys where number of digits represents order and least
   significant digits represent differentiated variables. Input is
   limited to functions of at most 9 variables."
-  [poly order]
+  [poly ^long order]
   (let [tape (atom (transient (i/int-map)))
         dims (count (ffirst poly))]
-    (letfn [(partial-diff [poly key idx]
+    (letfn [(partial-diff [poly ^long key ^long idx]
               (let [partial (transform [ALL] (fn [[k v]]
-                                               (let [var (nth k idx)]
+                                               (let [var (long (nth k idx))]
                                                  (when (not (zero? var))
-                                                   [(update k idx dec)
-                                                    (* v var)])))
+                                                   [(update k idx cc/dec)
+                                                    (cc/* v var)])))
                                        poly)]
                 (swap! tape assoc! key partial)
                 (list partial key)))
-            (diff-loop [poly n]
+            (diff-loop [poly ^long n]
               (when (< n order)
-                (run! #(diff-loop (partial-diff (first poly) (+ (* 10 (second poly)) (inc %)) %)
+                (run! #(diff-loop (partial-diff (first poly)
+                                                (+ (* 10 (long (second poly)))
+                                                   (inc (long %)))
+                                                %)
                                   (inc n))
                       (range dims))))]
       (diff-loop (list poly 0) 0)
@@ -44,21 +51,24 @@
   integer keys where number of digits represents order and least
   significant digits represent differentiated variables. Input is
   limited to functions of at most 9 variables."
-  [poly order]
+  [poly ^long order]
   (let [tape (atom (transient (i/int-map)))
         dims (count (ffirst poly))]
-    (letfn [(partial-diff [poly key idx]
+    (letfn [(partial-diff [poly ^long key ^long idx]
               (let [partial (transform [ALL] (fn [[k v]]
-                                               (let [var (nth k idx)]
+                                               (let [var (long (nth k idx))]
                                                  (when (not (zero? var))
-                                                   [(update k idx inc)
-                                                    (/ v (inc var))])))
+                                                   [(update k idx cc/inc)
+                                                    (cc// v (inc var))])))
                                        poly)]
                 (swap! tape assoc! key partial)
                 (list partial key)))
-            (diff-loop [poly n]
+            (diff-loop [poly ^long n]
               (when (< n order)
-                (run! #(diff-loop (partial-diff (first poly) (+ (* 10 (second poly)) (inc %)) %)
+                (run! #(diff-loop (partial-diff (first poly)
+                                                (+ (* 10 (long (second poly)))
+                                                   (inc (long %)))
+                                                %)
                                   (inc n))
                       (range dims))))]
       (diff-loop (list poly 0) 0)
@@ -66,22 +76,25 @@
 
 (defn pdiff
   "Experimental - parallel version of `diff` using agents."
-  [poly order]
+  [poly ^long order]
   (let [*tape* (agent (transient (i/int-map)))
         dims (count (ffirst poly))]
-    (letfn [(partial-diff [poly key idx]
+    (letfn [(partial-diff [poly ^long key ^long idx]
               (let [partial (transform [ALL] (fn [[k v]]
-                                               (let [var (nth k idx)]
+                                               (let [var (long (nth k idx))]
                                                  (when (not (zero? var))
-                                                   [(update k idx dec)
-                                                    (* v var)])))
+                                                   [(update k idx cc/dec)
+                                                    (cc/* v var)])))
                                        poly)]
                 (send *tape* assoc! key partial)
                 (list partial key)))
-            (diff-loop [poly n]
+            (diff-loop [poly ^long n]
               (when (< n order)
                 (doall
-                 (pmap #(diff-loop (partial-diff (first poly) (+ (* 10 (second poly)) (inc %)) %)
+                 (pmap #(diff-loop (partial-diff (first poly)
+                                                 (+ (* 10 (long (second poly)))
+                                                    (inc (long %)))
+                                                 %)
                                    (inc n))
                        (range dims)))))]
       (diff-loop (list poly 0) 0)
@@ -90,22 +103,25 @@
 
 (defn anti-pdiff
   "Experimental - parallel version of `anti-diff` using agents."
-  [poly order]
+  [poly ^long order]
   (let [*tape* (agent (transient (i/int-map)))
         dims (count (ffirst poly))]
-    (letfn [(partial-diff [poly key idx]
+    (letfn [(partial-diff [poly ^long key ^long idx]
               (let [partial (transform [ALL] (fn [[k v]]
-                                               (let [var (nth k idx)]
+                                               (let [var (long (nth k idx))]
                                                  (when (not (zero? var))
-                                                   [(update k idx inc)
-                                                    (/ v (inc var))])))
+                                                   [(update k idx cc/inc)
+                                                    (cc// v (inc var))])))
                                        poly)]
                 (send *tape* assoc! key partial)
                 (list partial key)))
-            (diff-loop [poly n]
+            (diff-loop [poly ^long n]
               (when (< n order)
                 (doall
-                 (pmap #(diff-loop (partial-diff (first poly) (+ (* 10 (second poly)) (inc %)) %)
+                 (pmap #(diff-loop (partial-diff (first poly)
+                                                 (+ (* 10 (long (second poly)))
+                                                    (inc (long %)))
+                                                 %)
                                    (inc n))
                        (range dims)))))]
       (diff-loop (list poly 0) 0)
