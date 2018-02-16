@@ -21,8 +21,8 @@
 (defn mul-series
   "Cauchy product."
   [s1 s2]
-  (cons (* (first s1)
-           (first s2))
+  (cons (cc/* (first s1)
+              (first s2))
         (lazy-seq
          (map +'
               (map *' (rest s2) (repeat (first s1)))

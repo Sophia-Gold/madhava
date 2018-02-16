@@ -21,8 +21,8 @@
   Uses graded reverse lexicographic ordering
   for efficiency in computing Gröbner bases."
   [term1 term2]
-  (let [grade1 (reduce +' term1)
-        grade2 (reduce +' term2)
+  (let [grade1 (long (reduce +' term1))
+        grade2 (long (reduce +' term2))
         comp (- grade2 grade1)] ;; total degree
     (if (not= 0 comp)
       comp
@@ -30,8 +30,8 @@
              term2 term2]
         (if (empty? term1)
           0
-          (let [grade1 (last term1)
-                grade2 (last term2)
+          (let [grade1 (long (last term1))
+                grade2 (long (last term2))
                 comp (- grade1 grade2)] ;; differs from grlex because terms are flipped from above
             (if (not= 0 comp)
             comp

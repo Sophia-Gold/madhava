@@ -19,7 +19,7 @@
   "Computes Hessian matrix. 
   Returns an int-map of first-order partial derivatives."
   [f]
-  (select [ALL (fn [[k v]] (and (> k 9) (< k 100)))]
+  (select [ALL (fn [[^long k ^long v]] (and (> k 9) (< k 100)))]
           (diff f 2)))
 
 (defn grad
@@ -56,7 +56,8 @@
   (let [partials (diff f 2)
         vars (inc (count (ffirst f)))]
     (->> (range 1 vars)
-         (map #(get partials (+ (* 10 %) %)))
+         (map #(get partials (+ (* 10 (long %))
+                                (long %))))
          (#(apply add %)))))
 
 (defn div
@@ -64,7 +65,7 @@
   [f]
   (->> f
        (#(vector-diff % 1))
-       (map-indexed #(get %2 (inc %1)))
+       (map-indexed #(get %2 (inc (long %1))))
        (#(apply add %))))
 
 (defn curl
@@ -76,12 +77,12 @@
         partials (vector-diff f 1)
         partials-1 (map (fn [r1 r2]
                           (get (nth partials (mod r1 vars))
-                               (inc (mod r2 vars))))
+                               (inc (long (mod r2 vars)))))
                         range2
                         range1)
         partials-2 (map (fn [r1 r2]
                           (get (nth partials (mod r1 vars))
-                               (inc (mod r2 vars))))
+                               (inc (long (mod r2 vars)))))
                         range1
                         range2)]
     (map sub partials-1 partials-2)))

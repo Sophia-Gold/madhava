@@ -20,21 +20,24 @@
   integer keys where number of digits represents order and least
   significant digits represent differentiated variables. Input is
   limited to functions of at most 9 variables."
-  [poly order]
+  [poly ^long order]
   (let [tape (atom (transient (i/int-map)))
         dims (count (ffirst poly))]
-    (letfn [(partial-diff [poly key idx]
+    (letfn [(partial-diff [poly ^long key ^long idx]
               (let [partial (transform [ALL] (fn [[k v]]
-                                               (let [var (nth k idx)]
+                                               (let [var (long (nth k idx))]
                                                  (when (not (zero? var))
                                                    [(update k idx cc/dec)
-                                                    (* v var)])))
+                                                    (cc/* v var)])))
                                        poly)]
                 (swap! tape assoc! key partial)
                 (list partial key)))
-            (diff-loop [poly n]
+            (diff-loop [poly ^long n]
               (when (< n order)
-                (run! #(diff-loop (partial-diff (first poly) (+ (* 10 (second poly)) (inc %)) %)
+                (run! #(diff-loop (partial-diff (first poly)
+                                                (+ (* 10 (long (second poly)))
+                                                   (inc (long %)))
+                                                %)
                                   (inc n))
                       (range dims))))]
       (diff-loop (list poly 0) 0)
@@ -48,21 +51,24 @@
   integer keys where number of digits represents order and least
   significant digits represent differentiated variables. Input is
   limited to functions of at most 9 variables."
-  [poly order]
+  [poly ^long order]
   (let [tape (atom (transient (i/int-map)))
         dims (count (ffirst poly))]
-    (letfn [(partial-diff [poly key idx]
+    (letfn [(partial-diff [poly ^long key ^long idx]
               (let [partial (transform [ALL] (fn [[k v]]
-                                               (let [var (nth k idx)]
+                                               (let [var (long (nth k idx))]
                                                  (when (not (zero? var))
                                                    [(update k idx cc/inc)
-                                                    (/ v (inc var))])))
+                                                    (cc// v (inc var))])))
                                        poly)]
                 (swap! tape assoc! key partial)
                 (list partial key)))
-            (diff-loop [poly n]
+            (diff-loop [poly ^long n]
               (when (< n order)
-                (run! #(diff-loop (partial-diff (first poly) (+ (* 10 (second poly)) (inc %)) %)
+                (run! #(diff-loop (partial-diff (first poly)
+                                                (+ (* 10 (long (second poly)))
+                                                   (inc (long %)))
+                                                %)
                                   (inc n))
                       (range dims))))]
       (diff-loop (list poly 0) 0)
@@ -70,22 +76,25 @@
 
 (defn pdiff
   "Experimental - parallel version of `diff` using agents."
-  [poly order]
+  [poly ^long order]
   (let [*tape* (agent (transient (i/int-map)))
         dims (count (ffirst poly))]
-    (letfn [(partial-diff [poly key idx]
+    (letfn [(partial-diff [poly ^long key ^long idx]
               (let [partial (transform [ALL] (fn [[k v]]
-                                               (let [var (nth k idx)]
+                                               (let [var (long (nth k idx))]
                                                  (when (not (zero? var))
                                                    [(update k idx cc/dec)
-                                                    (* v var)])))
+                                                    (cc/* v var)])))
                                        poly)]
                 (send *tape* assoc! key partial)
                 (list partial key)))
-            (diff-loop [poly n]
+            (diff-loop [poly ^long n]
               (when (< n order)
                 (doall
-                 (pmap #(diff-loop (partial-diff (first poly) (+ (* 10 (second poly)) (inc %)) %)
+                 (pmap #(diff-loop (partial-diff (first poly)
+                                                 (+ (* 10 (long (second poly)))
+                                                    (inc (long %)))
+                                                 %)
                                    (inc n))
                        (range dims)))))]
       (diff-loop (list poly 0) 0)
@@ -94,22 +103,25 @@
 
 (defn anti-pdiff
   "Experimental - parallel version of `anti-diff` using agents."
-  [poly order]
+  [poly ^long order]
   (let [*tape* (agent (transient (i/int-map)))
         dims (count (ffirst poly))]
-    (letfn [(partial-diff [poly key idx]
+    (letfn [(partial-diff [poly ^long key ^long idx]
               (let [partial (transform [ALL] (fn [[k v]]
-                                               (let [var (nth k idx)]
+                                               (let [var (long (nth k idx))]
                                                  (when (not (zero? var))
                                                    [(update k idx cc/inc)
-                                                    (/ v (inc var))])))
+                                                    (cc// v (inc var))])))
                                        poly)]
                 (send *tape* assoc! key partial)
                 (list partial key)))
-            (diff-loop [poly n]
+            (diff-loop [poly ^long n]
               (when (< n order)
                 (doall
-                 (pmap #(diff-loop (partial-diff (first poly) (+ (* 10 (second poly)) (inc %)) %)
+                 (pmap #(diff-loop (partial-diff (first poly)
+                                                 (+ (* 10 (long (second poly)))
+                                                    (inc (long %)))
+                                                 %)
                                    (inc n))
                        (range dims)))))]
       (diff-loop (list poly 0) 0)
