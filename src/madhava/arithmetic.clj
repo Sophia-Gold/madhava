@@ -113,7 +113,7 @@
   [poly]
   (->> poly
        (map (fn [v]
-              {(mapv #(/ (long %) 2) (first v))
+              {(mapv #(cc// % 2) (first v)) ;; polymorphic divide: coefficiants can be longs or doubles
                (Math/sqrt (second v))}))
        (into {})))
 
@@ -137,7 +137,7 @@
         lcm (compl f-vars g-vars)]
     (if (not-any? nil? lcm)
       {(vec lcm)
-       (cc// (second f) (second g))})))
+       (cc// (second f) (second g))}))) ;; polymorphic divide: coefficiants can be longs or doubles
 
 (defn divide
   "Polynomial long division using Buchberger's algorithm.

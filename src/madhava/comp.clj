@@ -22,10 +22,10 @@
       (let [term (first f)
             vars (first term)
             coeff (second term)
-            v (long (nth vars idx))]
+            v (nth vars idx)]
         (cond
           (nil? term) (into (sorted-map-by grevlex) result)
-          (zero? v) (recur (dissoc f vars) (add {vars coeff} result))
+          (zero? (long v)) (recur (dissoc f vars) (add {vars coeff} result))
           :else (recur (dissoc f vars) (add (apply mul
                                                    {(assoc vars idx 0) coeff}
                                                    (repeat v g))  ;; raise g to exponent
