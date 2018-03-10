@@ -71,6 +71,36 @@
   ([poly1 poly2 & more]
    (reduce mul (mul poly1 poly2) more)))
 
+(defn mul2
+  "Polynomial multiplication.
+  Variadic, unary version returns transducer.
+  Based on an algorithm by Henry Baker."
+  ([poly1]  ;; completion
+   (fn
+     ([] poly1)
+     ([poly2] (mul poly1 poly2))
+     ([poly2 & more] (mul poly1 poly2 more))))
+  ([poly1 poly2]
+   (letfn [(monomul [poly term]
+             (->> poly
+                  (map (fn [p]
+                         (map #(vector (+' (first term) (first %))
+                                       (* (second term) (second %)))
+                              p)))
+                  (into (sorted-map-by grevlex))))]
+     ;; (let [term1 (first poly1)
+     ;;       poly1 (next poly1)] 
+     ;;   (if (empty? poly1)
+     ;;     (monomul poly2 term1)
+     ;;     (add (monomul poly2 term1)
+     ;;          (mul2 poly1
+     ;;                (next poly2)))))))
+     (->> poly1
+          (map #(monomul (first %) poly2))
+          (apply add))))
+  ([poly1 poly2 & more]
+   (reduce mul (mul poly1 poly2) more)))
+
 (defn pmul
   "Experimental - parallel version of `mul` using agents."
   ([poly1]  ;; completion
@@ -106,6 +136,32 @@
                     (apply mul))
      (= exp 1) poly
      (zero? exp) {(into (vector) (repeat (count (ffirst poly)) 0)) 1})))
+
+(defn pow2
+  "Raises polynomial to exponent.
+  Based on an algorithm by Henry Baker."
+  ([poly ^long exp]
+   {:pre [(>= exp 0)]}
+   (if (zero? exp)
+     {(into (vector) (repeat (count (ffirst poly)) 0)) 1} 
+     ;; (cond
+     ;;   (= exp 1) poly
+     ;;   (even? exp?) (let [half-pow ]
+     ;;                  (mul half-pow
+     ;;                       half-pow)) 
+     ;;   (odd? exp?) (let [half-pow (pow2 poly (quot exp 2))]
+     ;;                 (mul poly
+     ;;                      half-pow
+     ;;                      half-pow))) 
+     (let [poly (if (even? exp)
+                  poly
+                  (mul poly poly))] 
+       (loop [exp (quot exp 2)
+              result poly]
+         (if (= exp 1)
+           poly
+           (recur (quot exp 2)
+                  (take (quot exp 2) (iterate #(mul % %) poly)))))))))
 
 (defn sqrt
   "Polynomial square root.
