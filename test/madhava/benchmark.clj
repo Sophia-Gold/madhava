@@ -20,6 +20,22 @@
    (mul {[4 3 3] 5, [2 1 2] 8, [0 4 0] 1, [0 0 3] 2, [1 0 0] 5}
         {[3 3 3] 5, [2 1 2] 8, [0 4 0] 1, [0 0 3] 2})))
 
+(deftest ^:benchmark mul-bench2
+  (println "\nMultiplication w/ Henry Baker algorithm")
+  (quick-bench
+   (mul-linear {[4 3 3] 5, [2 1 2] 8, [0 4 0] 1, [0 0 3] 2, [1 0 0] 5}
+               {[3 3 3] 5, [2 1 2] 8, [0 4 0] 1, [0 0 3] 2})))
+
+(deftest ^:benchmark pow-bench
+  (println "\nExponentiation")
+  (quick-bench
+   (pow {[4 3 3] 5, [2 1 2] 8, [0 4 0] 1, [0 0 3] 2, [1 0 0] 5} 8)))
+
+(deftest ^:benchmark pow-bench2
+  (println "\nExponentiation w/ Henry Baker algorithm")
+  (quick-bench
+   (pow-linear {[4 3 3] 5, [2 1 2] 8, [0 4 0] 1, [0 0 3] 2, [1 0 0] 5} 8)))
+
 (deftest ^:benchmark division-bench
   (println "\nDivision")
   (quick-bench

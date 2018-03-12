@@ -10,13 +10,14 @@
 
 (defn add
   "Polynomial addition.
-  Variadic, unary version returns transducer."
-  ([poly1]  ;; completion
+  Variadic, nullary version returns transducer."
+  ([]  ;; init
    (fn
-     ([] poly1)
-     ([poly2] (add poly1 poly2))
-     ([poly2 & more] (add poly1 poly2 more))))
-  ([poly1 poly2]
+     ([poly] poly)
+     ([poly1 poly2] (add poly1 poly2))
+     ([poly1 poly2 & more] (reduce add (add poly1 poly2) more))))
+  ([poly] poly)  ;; completion 
+  ([poly1 poly2]  ;; step
    (denull
     (into (sorted-map-by grevlex)
           (merge-with +' poly1 poly2))))
@@ -46,15 +47,26 @@
        (into {})
        (denull)))
 
+(defn monomul
+  "Efficiently multiply a polynomial by a monomial."
+  [poly term]
+  (let [vars (first term)
+        coeff (second term)]
+  (->> poly
+       (map #(vector (mapv +' vars (first %))
+                     (*' coeff (second %))))
+       (into (sorted-map-by grevlex)))))
+
 (defn mul
   "Polynomial multiplication.
-  Variadic, unary version returns transducer."
-  ([poly1]  ;; completion
+  Variadic, nullary version returns transducer."
+  ([]  ;; init
    (fn
-     ([] poly1)
-     ([poly2] (mul poly1 poly2))
-     ([poly2 & more] (mul poly1 poly2 more))))
-  ([poly1 poly2]
+     ([poly] poly)
+     ([poly1 poly2] (mul poly1 poly2))
+     ([poly1 poly2 & more] (reduce mul (mul poly1 poly2) more))))
+  ([poly] poly)  ;; completion
+  ([poly1 poly2]  ;; step
    (let [product (atom (transient (sorted-map-by grevlex)))]
      (doall  ;; `for` is lazy so must to be forced for side-effects 
       (for [term1 poly1
@@ -71,44 +83,32 @@
   ([poly1 poly2 & more]
    (reduce mul (mul poly1 poly2) more)))
 
-(defn mul2
+(defn mul-linear
   "Polynomial multiplication.
-  Variadic, unary version returns transducer.
+  Variadic, nullary version returns transducer.
   Based on an algorithm by Henry Baker."
-  ([poly1]  ;; completion
+  ([]  ;; init
    (fn
-     ([] poly1)
-     ([poly2] (mul poly1 poly2))
-     ([poly2 & more] (mul poly1 poly2 more))))
-  ([poly1 poly2]
-   (letfn [(monomul [poly term]
-             (->> poly
-                  (map (fn [p]
-                         (map #(vector (+' (first term) (first %))
-                                       (* (second term) (second %)))
-                              p)))
-                  (into (sorted-map-by grevlex))))]
-     ;; (let [term1 (first poly1)
-     ;;       poly1 (next poly1)] 
-     ;;   (if (empty? poly1)
-     ;;     (monomul poly2 term1)
-     ;;     (add (monomul poly2 term1)
-     ;;          (mul2 poly1
-     ;;                (next poly2)))))))
-     (->> poly1
-          (map #(monomul (first %) poly2))
-          (apply add))))
+     ([poly] poly)
+     ([poly1 poly2] (mul poly1 poly2))
+     ([poly1 poly2 & more] (reduce mul (mul poly1 poly2) more))))
+  ([poly] poly)  ;; completion 
+  ([poly1 poly2]  ;; step
+   (->> poly1
+        (map #(monomul poly2 %))
+        (reduce add)))
   ([poly1 poly2 & more]
    (reduce mul (mul poly1 poly2) more)))
 
 (defn pmul
   "Experimental - parallel version of `mul` using agents."
-  ([poly1]  ;; completion
+  ([]  ;; init
    (fn
-     ([] poly1)
-     ([poly2] (pmul poly1 poly2))
-     ([poly2 & more] (pmul poly1 poly2 more))))
-  ([poly1 poly2]
+     ([poly] poly)
+     ([poly1 poly2] (pmul poly1 poly2))
+     ([poly1 poly2 & more] (reduce (mul poly1 poly2) more))))
+  ([poly] poly)  ;; completion
+  ([poly1 poly2]  ;; step
    (let [*product* (agent (transient (sorted-map-by grevlex)))]
      (do  ;; `for` is lazy so must to be forced for side-effects 
       (for [term1 poly1
@@ -137,31 +137,23 @@
      (= exp 1) poly
      (zero? exp) {(into (vector) (repeat (count (ffirst poly)) 0)) 1})))
 
-(defn pow2
+(defn pow-linear
   "Raises polynomial to exponent.
   Based on an algorithm by Henry Baker."
   ([poly ^long exp]
    {:pre [(>= exp 0)]}
    (if (zero? exp)
-     {(into (vector) (repeat (count (ffirst poly)) 0)) 1} 
-     ;; (cond
-     ;;   (= exp 1) poly
-     ;;   (even? exp?) (let [half-pow ]
-     ;;                  (mul half-pow
-     ;;                       half-pow)) 
-     ;;   (odd? exp?) (let [half-pow (pow2 poly (quot exp 2))]
-     ;;                 (mul poly
-     ;;                      half-pow
-     ;;                      half-pow))) 
-     (let [poly (if (even? exp)
-                  poly
-                  (mul poly poly))] 
-       (loop [exp (quot exp 2)
-              result poly]
-         (if (= exp 1)
-           poly
-           (recur (quot exp 2)
-                  (take (quot exp 2) (iterate #(mul % %) poly)))))))))
+     {(into (vector) (repeat (count (ffirst poly)) 0)) 1}
+      (loop [exp exp
+             result [poly]]
+        (cond
+          (= exp 1) (apply mul result)
+          (even? exp) (recur (quot exp 2)
+                             (conj result (nth (iterate #(mul poly %) poly)
+                                               (dec (quot exp 2))))) 
+          :else (recur (quot exp 2)
+                       (conj result (nth (iterate #(mul poly %) poly)
+                                         (quot exp 2)))))))))
 
 (defn sqrt
   "Polynomial square root.
@@ -192,8 +184,8 @@
         g-vars (first g)
         lcm (compl f-vars g-vars)]
     (if (not-any? nil? lcm)
-      {(vec lcm)
-       (cc// (second f) (second g))}))) ;; polymorphic divide: coefficiants can be longs or doubles
+      (vector (vec lcm)
+              (cc// (second f) (second g))))))  ;; polymorphic divide: coefficiants can be longs or doubles
 
 (defn divide
   "Polynomial long division using Buchberger's algorithm.
@@ -217,7 +209,7 @@
                  (dissoc g (first term2))
                  result
                  (conj remainder term1))
-          (recur (sub f (mul g s-term))
+          (recur (sub f (monomul g s-term))
                  g
                  (conj! result s-term)
                  remainder))))))
