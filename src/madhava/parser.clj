@@ -1,7 +1,10 @@
 (ns madhava.parser
-  (:require [madhava.ast :refer [ast example]]
+  (:require [madhava.arithmetic :refer :all]
+            [madhava.ast :refer [ast example]]
             [madhava.util :refer :all]
             [clojure.core.async.impl.ioc-macros :refer [parse-to-state-machine]]
+            [clojure.core.match :refer [match]]
+            [com.rpl.specter :refer :all]
             [clojure.pprint :refer [pprint]]
             [clojure.data.avl :refer [sorted-map-by]]
             [clj-tuple :refer [vector]])
@@ -9,12 +12,6 @@
 
 (defn ** [base exp]
   (long (Math/pow base exp)))
-
-(def dict {'clojure.core/+ 'add
-           'clojure.core/- 'sub
-           'clojure.core/* 'add
-           'clojure.core// 'div
-           'madhava.parser/** 'pow})
 
 (defmacro ssa [f]
   `(-> ~f
@@ -70,7 +67,7 @@
 
 (defn trace [block asm]
   (let [args (args asm)
-        op (keyword (name (first block))) 
+        op (keyword (name (first block)))
         children (mapv #(if (and (symbol? %)
                                    (empty? (filter (partial = %) args)))
                             (trace (get-block % asm) asm)
@@ -81,3 +78,32 @@
 (defmacro trace-control-flow [f]
   `(let [asm# (ssa ~f)]
      (trace (ret asm#) asm#)))
+
+;; (def dict {clojure.core/+ 'add
+;;            'clojure.core/- 'sub
+;;            'clojure.core/* 'add
+;;            'clojure.core// 'div
+;;            'madhava.parser/** 'pow})
+
+(defn parse-to-mono [expr]
+  (let [op (first expr)
+        args (second expr)]
+    (match [op args]
+     [:+ args]         (->> args
+                            (parse-to-mono)
+                            (merge-with +'))
+     [:- args]         (->> args
+                            (parse-to-mono)
+                            (merge-with -')) 
+     [:* [coeff vars]] {(parse-to-mono vars) coeff} 
+     [:/ [a1 a2]]      (cond
+                         (and (number? a1)
+                              (number? a2)) (/ a1 a2)
+                         (number? a1)       (->> a2
+                                                 (transform [MAP-KEYS] #(map (partial / a1) %))
+                                                 (transform [MAP-VALS] #(/ % a1)))
+                         (number? a2)       (transform [MAP-VALS] #(/ % a2) a1)
+                         :else              (divide a1 a2))
+     [:** [vars exp]]  (->> vars
+                            (apply conj (vector))
+                            (mapv (partial * coeff))))))
