@@ -25,17 +25,17 @@
        vals
        first))
 
-(defmacro ssa2 [f] 
-  `(-> ~f
-       quote
-       clojure.repl/source-fn
-       read-string
-       nnext 
-       parse-to-state-machine
-       second
-       :blocks
-       vals
-       first))
+;; (defmacro ssa2 [f] 
+;;   `(-> ~f
+;;        quote
+;;        clojure.repl/source-fn
+;;        read-string
+;;        nnext 
+;;        parse-to-state-machine
+;;        second
+;;        :blocks
+;;        vals
+;;        first))
 
 (defn get-block [id asm]
   (->> asm
@@ -56,21 +56,8 @@
       :value
       (get-block asm)))
 
-(defn trace-control-flow [asm]
-  (let [args (args asm)]
-    (letfn [(trace [block]
-              (let [op (keyword (name (first block))) 
-                    children (mapv #(if (and (symbol? %)
-                                             (empty? (filter (partial = %) args)))
-                                      (trace (get-block % asm))
-                                      %)
-                                   (next block))]
-                {op children}))]
-      (trace (ret asm)))))
-
-;; (defn trace-control-flow2 [f]
-;;   (let [asm (ssa f)
-;;         args (args asm)]
+;; (defn trace-control-flow [asm]
+;;   (let [args (args asm)]
 ;;     (letfn [(trace [block]
 ;;               (let [op (keyword (name (first block))) 
 ;;                     children (mapv #(if (and (symbol? %)
@@ -81,5 +68,16 @@
 ;;                 {op children}))]
 ;;       (trace (ret asm)))))
 
-(def t1 (ssa example))
-(def t2 (ssa2 example))
+(defn trace [block asm]
+  (let [args (args asm)
+        op (keyword (name (first block))) 
+        children (mapv #(if (and (symbol? %)
+                                   (empty? (filter (partial = %) args)))
+                            (trace (get-block % asm) asm)
+                            %)
+                         (next block))]
+     {op children}))
+
+(defmacro trace-control-flow [f]
+  `(let [asm# (ssa ~f)]
+     (trace (ret asm#) asm#)))
