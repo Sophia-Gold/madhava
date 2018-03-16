@@ -40,7 +40,7 @@
        first
        :refs))
 
-(defn args [asm]
+(defn var-args [asm]
   (->> asm
        first
        :refs
@@ -52,9 +52,49 @@
       last
       :value
       (get-block asm)))
+  
+(defn match-expr [expr]
+  (let [op (first expr)
+        args (second expr)] 
+    (match [op args]
+           [:+ args]         (->> args
+                                  (match-expr)
+                                  (match-expr +'))
+           [:- args]         (->> args
+                                  (match-expr)
+                                  (merge-with -'))
+           [:* args]         (let [term (group-by number? args)
+                                   coeff (reduce *' (get term true)) 
+                                   vars (group-by symbol? (get term false)) 
+                                   v1 (->> (get vars true) 
+                                           frequencies
+                                           (merge-with +' var-args)
+                                           vals
+                                           (into (vector)))
+                                   v2 (apply match-expr (get vars false))]
+                               {coeff (mapv +' v1 v2)})
+           [:/ [a1 a2]]      (cond
+                               (and (number? a1)
+                                    (number? a2)) (/ a1 a2)
+                               (number? a1)       (->> a2
+                                                       (transform [MAP-KEYS] #(map (partial / a1) %))
+                                                       (transform [MAP-VALS] #(/ % a1)))
+                               (number? a2)       (transform [MAP-VALS] #(/ % a2) a1)
+                               :else              (divide a1 a2))  ;; `:else` doesn't catch exceptions
+           [:** [base exp]]  (cond 
+                               (symbol? base) (->> {base exp}
+                                                   (merge-with +' var-args)
+                                                   vals
+                                                   (into (vector)))
+                               (number? base) (Math/pow base exp)
+                               (map? base)    (pow base exp))))) 
+
+(defn parse-mono [var-args expr]
+  (let [var-args (zipmap var-args (repeat 0))]
+    (match-expr expr)))
 
 ;; (defn trace-control-flow [asm]
-;;   (let [args (args asm)]
+;;   (let [args (var-args asm)]
 ;;     (letfn [(trace [block]
 ;;               (let [op (keyword (name (first block))) 
 ;;                     children (mapv #(if (and (symbol? %)
@@ -66,7 +106,7 @@
 ;;       (trace (ret asm)))))
 
 (defn trace [block asm]
-  (let [args (args asm)
+  (let [args (var-args asm)
         op (keyword (name (first block)))
         children (mapv #(if (and (symbol? %)
                                    (empty? (filter (partial = %) args)))
@@ -78,32 +118,3 @@
 (defmacro trace-control-flow [f]
   `(let [asm# (ssa ~f)]
      (trace (ret asm#) asm#)))
-
-;; (def dict {clojure.core/+ 'add
-;;            'clojure.core/- 'sub
-;;            'clojure.core/* 'add
-;;            'clojure.core// 'div
-;;            'madhava.parser/** 'pow})
-
-(defn parse-to-mono [expr]
-  (let [op (first expr)
-        args (second expr)]
-    (match [op args]
-     [:+ args]         (->> args
-                            (parse-to-mono)
-                            (merge-with +'))
-     [:- args]         (->> args
-                            (parse-to-mono)
-                            (merge-with -')) 
-     [:* [coeff vars]] {(parse-to-mono vars) coeff} 
-     [:/ [a1 a2]]      (cond
-                         (and (number? a1)
-                              (number? a2)) (/ a1 a2)
-                         (number? a1)       (->> a2
-                                                 (transform [MAP-KEYS] #(map (partial / a1) %))
-                                                 (transform [MAP-VALS] #(/ % a1)))
-                         (number? a2)       (transform [MAP-VALS] #(/ % a2) a1)
-                         :else              (divide a1 a2))
-     [:** [vars exp]]  (->> vars
-                            (apply conj (vector))
-                            (mapv (partial * coeff))))))
