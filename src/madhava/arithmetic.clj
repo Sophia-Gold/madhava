@@ -90,15 +90,15 @@
   ([]  ;; init
    (fn
      ([poly] poly)
-     ([poly1 poly2] (mul poly1 poly2))
-     ([poly1 poly2 & more] (reduce mul (mul poly1 poly2) more))))
+     ([poly1 poly2] (mul-linear poly1 poly2))
+     ([poly1 poly2 & more] (reduce mul-linear (mul-linear poly1 poly2) more))))
   ([poly] poly)  ;; completion 
   ([poly1 poly2]  ;; step
    (->> poly1
         (map #(monomul poly2 %))
         (reduce add)))
   ([poly1 poly2 & more]
-   (reduce mul (mul poly1 poly2) more)))
+   (reduce mul-linear (mul-linear poly1 poly2) more)))
 
 (defn pmul
   "Experimental - parallel version of `mul` using agents."
@@ -147,12 +147,12 @@
       (loop [exp exp
              result [poly]]
         (cond
-          (= exp 1) (apply mul result)
+          (= exp 1) (apply mul-linear result)
           (even? exp) (recur (quot exp 2)
-                             (conj result (nth (iterate #(mul poly %) poly)
+                             (conj result (nth (iterate #(mul-linear poly %) poly)
                                                (dec (quot exp 2))))) 
           :else (recur (quot exp 2)
-                       (conj result (nth (iterate #(mul poly %) poly)
+                       (conj result (nth (iterate #(mul-linear poly %) poly)
                                          (quot exp 2)))))))))
 
 (defn sqrt
