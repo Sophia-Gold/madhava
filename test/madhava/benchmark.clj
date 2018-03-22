@@ -48,6 +48,24 @@
    (compose {[4 3 3] 5, [2 1 2] 8, [0 4 0] 1, [0 0 3] 2, [1 0 0] 5}
             {[3 3 3] 5, [2 1 2] 8, [0 4 0] 1, [0 0 3] 2} 2)))
 
+(deftest ^:benchmark comp-bench2
+  (println "\nComposition w/ `reduce`")
+  (quick-bench
+   (compose2 {[4 3 3] 5, [2 1 2] 8, [0 4 0] 1, [0 0 3] 2, [1 0 0] 5}
+            {[3 3 3] 5, [2 1 2] 8, [0 4 0] 1, [0 0 3] 2} 2)))
+
+(deftest ^:benchmark chain-bench
+  (println "\nChain rule")
+  (quick-bench
+   (chain {[4 3 3] 5, [2 1 2] 8, [0 4 0] 1, [0 0 3] 2, [1 0 0] 5}
+          {[3 3 3] 5, [2 1 2] 8, [0 4 0] 1, [0 0 3] 2})))
+
+(deftest ^:benchmark chain2-bench
+  (println "\nChain rule, unary only")
+  (quick-bench
+   (chain2 {[4 3 3] 5, [2 1 2] 8, [0 4 0] 1, [0 0 3] 2, [1 0 0] 5}
+           {[3 3 3] 5, [2 1 2] 8, [0 4 0] 1, [0 0 3] 2})))
+
 (deftest ^:benchmark grad-bench
   (println "\nGradient")
   (quick-bench

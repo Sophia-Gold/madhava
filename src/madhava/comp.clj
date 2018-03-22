@@ -31,6 +31,48 @@
                                                    (repeat v g))  ;; raise g to exponent
                                             result)))))))
 
+(defn compose2
+  "Functional composition.
+  Third argument is index of variable, starting from 1."
+  [f g ^long idx]
+  (let [idx (dec idx)]  ;; x == 1st var, 0th element in tuple
+    (->> f
+         (map (fn [term]
+                (let [vars (first term)
+                      coeff (second term)
+                      v (nth vars idx)]
+                  (if (zero? v)
+                    {vars coeff}
+                    (-> g
+                        (pow v)
+                        (monomul (vector (assoc vars idx 0) coeff)))))))
+         (apply add)
+         (into (sorted-map-by grevlex)))))
+
+(defn multi-compose
+  "Functional composition.
+  Substitutes `g` for all variables in `f`.
+  Variadic, unary version returns transducer."
+  ([]  ;; init
+   (fn
+     ([f] f)
+     ([f g] (multi-compose f g))
+     ([f g & more] (reduce multi-compose (multi-compose f g) more))))
+  ([f] f)  ;; completion
+  ([f g]  ;; step
+   (->> f
+        (map (fn [term] 
+               (map #(if (not= 0 %)
+                       {}
+                       (-> g
+                           (pow %)
+                           (scale (second term))))
+                    (first term))))
+        (apply add)
+        (into (sorted-map-by grevlex))))
+  ([f g & more]
+   (reduce multi-compose (multi-compose f g) more)))
+
 (defn revert1
   "Computes compositional inverse, aka Horner's rule.
   Only for univariate polynomials.
@@ -67,25 +109,16 @@
          (map *' coeffs)  ;; multiply by coefficients   
          (reduce +'))))  ;; sum monomials
 
-(defn chain1
-  "Faster implementation of chain rule for univariate functions."
-  [f g ^long idx]
-  (let [i (dec idx)]
-    (-> f
-        (grad)
-        (nth i)
-        (compose g idx)
-        (mul (nth (grad g) i)))))
-
 (defn chain
   "Chain rule. 
   Variadic, unary version returns transducer."
-  ([f]  ;; completion
+  ([]  ;; init
    (fn
-     ([] f)
-     ([g] (chain f g))
-     ([g & more] (chain f g more))))
-  ([f g] 
+     ([f] f)
+     ([f g] (chain f g))
+     ([f g & more] (reduce chain (chain f g) more))))
+  ([f] f)  ;; completion
+  ([f g]  ;; step
    (->> f
         (grad)
         (map-indexed #(compose %2 g (inc (long %1))))
@@ -94,64 +127,128 @@
   ([f g & more]
    (reduce chain (chain f g) more)))
 
+(defn chain2
+  "Faster implementation of chain rule for univariate functions.
+  Variadic, unary version returns transducer."
+  ([]  ;; init
+   (fn
+     ([f] f)
+     ([f g] (chain2 f g))
+     ([f g & more] (reduce chain2 (chain2 f g) more))))
+  ([f] f)  ;; completion
+  ([f g]  ;; step
+   (->> f
+        ffirst
+        count
+        range 
+        (map #(-> f
+                  (grad)
+                  (nth %)
+                  (compose g (inc %))
+                  (mul (nth (grad g) %))))
+        (reduce add)))
+  ([f g & more]
+   (reduce chain2 (chain2 f g) more)))
+
+;; (defn partition-set' [n]
+;;   (->> (repeat n 1)
+;;        (combo/partitions)
+;;        (mapv (fn [x] (mapv #(reduce +' %) x)))))
+
+;; (defn chain-higher1'
+;;   "Faster implementation of higher-order chain rule for univariate functions."
+;;   [f g ^long order]
+;;   (let [f' (diff f order)
+;;         g' (diff g order)
+;;         partitions (reverse (partition-set' order)) 
+;;         coeff (map (fn [p] (->> order     ;; number of partitions of set with elements
+;;                                (inc)     ;; equal to order into sets of x elements
+;;                                (range 1)
+;;                                (combo/partitions)
+;;                                (map sort)  ;; TO DO: don't sort
+;;                                (filter #(= (map count %) p))
+;;                                (count))) 
+;;                    (map sort partitions))] ;; TO DO: don't sort
+;;     (reduce add
+;;             (map #(mul {[0] %1}
+;;                        (compose (get f' %2) g 1)
+;;                        (reduce mul
+;;                                (map (fn [x] (pow (get g' (first x))
+;;                                                 (second x)))
+;;                                     %3)))
+;;                  coeff
+;;                  (reverse (range 1 (inc order))) 
+;;                  (map frequencies partitions)))))
+
+;; (defn chain-higher'
+;;   "Higher-order chain rule using Faà di Bruno's formula."
+;;   [f g ^long order ^long idx]
+;;   (let [f' (diff f order)
+;;         g' (diff g order)
+;;         dims (count (ffirst f))]
+;;     (reduce add
+;;             (map (fn [degree partitions]
+;;                    (let [f-partials (compose (get f' (->> degree 
+;;                                                           (range)
+;;                                                           (map #(* (long (Math/pow 10 %)) idx))
+;;                                                           (reduce +')))
+;;                                              g idx)
+;;                          g-idxs (map (fn [x] (->> x
+;;                                                  (range)
+;;                                                  (map (fn [k] (map #(* (long (Math/pow 10 k)) (long %)) 
+;;                                                                   (range 1 (inc dims)))))
+;;                                                  (apply map +')))
+;;                                      partitions)
+;;                          g-partials (if (< 1 (count g-idxs))
+;;                                       (apply (fn [x] (map-indexed #(sort
+;;                                                                    (assoc (into (vector) (first g-idxs)) %1 %2))
+;;                                                                  x))
+;;                                              (next g-idxs))
+;;                                       g-idxs)] 
+;;                      (->> g-partials
+;;                           (mapcat (fn [k] (map #(get g' %) k)))
+;;                           (map #(mul f-partials %))
+;;                           (reduce add))))
+;;                  (range 1 (inc order))
+;;                  (map distinct (partition-set' order))))))
+
+;; (defn chain-higher
+;;   "Multivariate higher-order chain rule."
+;;   [f g ^long order]
+;;   (->> f
+;;        ffirst
+;;        count
+;;        range 
+;;        (map #(chain-higher' f g order %))
+;;        (reduce add)))
+
 (defn partition-set [n]
-  (->> (repeat n 1)
-       (combo/partitions)
-       (map (fn [x] (map #(reduce +' %) x)))))
+  (->> (range 1 (inc n))
+       (combo/partitions)))
 
 (defn chain-higher1
-  "Faster implementation of higher-order chain rule for univariate functions."
+  "Higher-order chain rule using Faà di Bruno's formula."
   [f g ^long order]
   (let [f' (diff f order)
-        g' (diff g order)
-        partitions (reverse (partition-set order)) 
-        coeff (map (fn [p] (->> order     ;; number of partitions of set with elements
-                               (inc)     ;; equal to order into sets of x elements
-                               (range 1)
-                               (combo/partitions)
-                               (map sort)  ;; TO DO: don't sort
-                               (filter #(= (map count %) p))
-                               (count))) 
-                   (map sort partitions))] ;; TO DO: don't sort
-    (reduce add
-            (map #(mul {[0] %1}
-                       (compose (get f' %2) g 1)
-                       (reduce mul
-                               (map (fn [x] (pow (get g' (first x))
-                                                (second x)))
-                                    %3)))
-                 coeff
-                 (reverse (range 1 (inc order))) 
-                 (map frequencies partitions)))))
+        g' (diff g order)]
+    (->> order
+         partition-set
+         (map (fn [p] (mul (multi-compose (get f' (count p)) g)
+                          (apply mul
+                                 (map (fn [b] (map #(get g' %) b) p))))))
+         (apply add))))
 
 (defn chain-higher
-  "Higher-order chain rule using Faà di Bruno's formula."
-  [f g ^long order ^long idx]
+  "Higher-order chain rule using Faà di Bruno's formula.
+  Works over multiple variables using the \"collapsing partitions\" technique
+  developed by Michael Hardy in \"Combinatorics of Partial Derivatives.\""
+  [f g ^long order]
   (let [f' (diff f order)
-        g' (diff g order)
-        dims (count (ffirst f))]
-    (reduce add
-            (map (fn [degree partitions]
-                   (let [f-partials (compose (get f' (->> degree 
-                                                          (range)
-                                                          (map #(* (long (Math/pow 10 %)) idx))
-                                                          (reduce +')))
-                                             g idx)
-                         g-idxs (map (fn [x] (->> x
-                                                 (range)
-                                                 (map (fn [k] (map #(* (long (Math/pow 10 k)) (long %)) 
-                                                                  (range 1 (inc dims)))))
-                                                 (apply map +')))
-                                     partitions)
-                         g-partials (if (< 1 (count g-idxs))
-                                      (apply (fn [x] (map-indexed #(sort
-                                                                   (assoc (into (vector) (first g-idxs)) %1 %2))
-                                                                 x))
-                                             (next g-idxs))
-                                      g-idxs)] 
-                     (->> g-partials
-                          (mapcat (fn [k] (map #(get g' %) k)))
-                          (map #(mul f-partials %))
-                          (reduce add))))
-                 (range 1 (inc order))
-                 (map distinct (partition-set order))))))
+        g' (diff g order)]
+    ;; (->> order
+    ;;      partition-set
+    ;;      (map (fn [p] (mul (multi-compose (get f' (count p)) g)
+    ;;                       (apply mul
+    ;;                              (map (fn [b] (map #(get g' %) b) p))))))
+    ;;      (apply add))))
+    ))

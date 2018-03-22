@@ -37,3 +37,7 @@
             comp
             (recur (pop term1)
                    (pop term2)))))))))
+
+(defn factorial
+  [n]
+  (reduce *' (range 1 (inc n))))

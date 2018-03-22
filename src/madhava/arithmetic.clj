@@ -54,7 +54,7 @@
         coeff (second term)]
   (->> poly
        (map #(vector (mapv +' vars (first %))
-                     (*' coeff (second %))))
+                     (* coeff (second %))))
        (into (sorted-map-by grevlex)))))
 
 (defn mul
