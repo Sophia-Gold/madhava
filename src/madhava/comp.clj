@@ -230,7 +230,6 @@
   (->> (range 1 (inc n))
        (combo/partitions)))
 
-;; 2nd order: (f''(g) * g' * g'') + (f'(g) * g') + (f'(g) * g'')
 (defn chain-higher1
   "Higher-order chain rule using Faà di Bruno's formula."
   [f g ^long order]
@@ -242,12 +241,3 @@
                           (apply mul                            
                                  (mapcat (fn [b] (map #(nth g' (dec %)) b)) p)))))
          (apply add))))
-
-(defn chain-higher
-  "Higher-order chain rule using Faà di Bruno's formula.
-  Works over multiple variables using the \"collapsing partitions\" technique
-  developed by Michael Hardy in \"Combinatorics of Partial Derivatives.\""
-  [f g ^long order]
-  (let [f' (diff f order)
-        g' (diff g order)]
-    ))
