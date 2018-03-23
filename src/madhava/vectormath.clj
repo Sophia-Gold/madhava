@@ -17,14 +17,14 @@
 
 (defn hessian
   "Computes Hessian matrix. 
-  Returns an int-map of first-order partial derivatives."
+  Returns an int-map of second-order partial derivatives."
   [f]
   (select [ALL (fn [[^long k ^long v]] (and (> k 9) (< k 100)))]
           (diff f 2)))
 
 (defn grad
   "Gradient (∇).
-  Returns a (Clojure) vector of functions in Cartesian form."
+  Returns a sequence of functions in Cartesian form."
   [f]
   (->> f
        jacobian
@@ -55,33 +55,28 @@
             (magnitude g))))
 
 (defn laplacian
-  "Laplace operator (∇^2).
-  Returns a (Clojure) vector of functions in Cartesian form." 
+  "Laplace operator (∇^2)."
   [f]
-  (let [dims (count (ffirst f))]
-    (->> f
-         hessian
-         vals
-         (partition dims)
-         (apply interleave)
-         (partition dims)
-         (mapv #(apply add %)))))
+  (let [partials (diff f 2)
+        vars (inc (count (ffirst f)))]
+    (->> (range 1 vars)
+         (map #(get partials (+ (* 10 (long %))
+                                (long %))))
+         (#(apply add %)))))
 
 (defn div
   "Divergence operator.
-  Takes and returns a (Clojure) vector of functions in Cartesian form."
+  Takes a sequence of functions in Cartesian form."
   [vf]
   (let [dims (count vf)]
     (->> vf
          (#(vector-diff % 1))
-         (map vals)
-         (apply interleave)
-         (partition dims)
-         (mapv #(apply add %)))))
-
+         (map-indexed #(get %2 (inc (long %1))))
+         (apply add))))
+ 
 (defn curl
   "Curl (rotation) operator.
-  Returns a (Clojure) vector of functions in Cartesian form."
+  Returns a sequence of functions in Cartesian form."
   [f]
   (let [dims (count (first (ffirst f)))
         range1 (range 1 (inc dims))

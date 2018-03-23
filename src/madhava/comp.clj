@@ -60,9 +60,9 @@
      ([f g & more] (reduce multi-compose (multi-compose f g) more))))
   ([f] f)  ;; completion
   ([f g]  ;; step
-   (let [const (repeat (count (ffirst f)) 0)] ;; dims
+   (let [const (into (vector) (repeat (count (ffirst f)) 0))] ;; dims
      (->> f
-          (#(dissoc % const))  ;; remove constant term from `f` (idempotent if not present)
+          (#(dissoc % const)) ;; remove constant term from `f` (idempotent if not present)
           (map (fn [term]
                  (->> term
                       first
@@ -70,8 +70,8 @@
                               {}
                               (pow g %)))
                       (apply mul)
-                      (#(scale % (second term)))))) 
-          (cons {(into (vector) const) (get f const)})  ;; add constant term from `f` (idempotent if not present)
+                      (#(scale % (second term))))))
+          (cons {const (get f const)})  ;; add constant term from `f` (idempotent if not present)
           (apply add)
           (into (sorted-map-by grevlex)))))
   ([f g & more]
