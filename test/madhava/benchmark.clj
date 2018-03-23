@@ -54,6 +54,12 @@
    (compose2 {[4 3 3] 5, [2 1 2] 8, [0 4 0] 1, [0 0 3] 2, [1 0 0] 5}
             {[3 3 3] 5, [2 1 2] 8, [0 4 0] 1, [0 0 3] 2} 2)))
 
+(deftest ^:benchmark multi-comp-bench
+  (println "\nMultivariate composition")
+  (quick-bench
+   (multi-compose {[4 3 3] 5, [2 1 2] 8, [0 4 0] 1, [0 0 3] 2, [1 0 0] 5}
+                  {[3 3 3] 5, [2 1 2] 8, [0 4 0] 1, [0 0 3] 2})))
+
 (deftest ^:benchmark chain-bench
   (println "\nChain rule")
   (quick-bench

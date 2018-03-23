@@ -59,17 +59,41 @@
      ([f g] (multi-compose f g))
      ([f g & more] (reduce multi-compose (multi-compose f g) more))))
   ([f] f)  ;; completion
-  ([f g]  ;; step
-   (->> f
-        (map (fn [term] 
-               (map #(if (not= 0 %)
-                       {}
-                       (-> g
-                           (pow %)
-                           (scale (second term))))
-                    (first term))))
-        (apply add)
-        (into (sorted-map-by grevlex))))
+  ;; ([f g]  ;; step
+  ;;  (let [c (fn [f]
+  ;;            (->> f
+  ;;                 (map (fn [term]
+  ;;                        (->> term
+  ;;                             first
+  ;;                             (map #(if (zero? %)
+  ;;                                     {}
+  ;;                                     (pow g %)))
+  ;;                             (apply mul)
+  ;;                             (#(scale % (second term))))))
+  ;;                 (cons {})
+  ;;                 (apply add)
+  ;;                 (into (sorted-map-by grevlex))))
+  ;;        const (last f)
+  ;;        const-key (first const)]
+  ;;    (if (zero? (reduce +' const-key))
+  ;;      (add (apply hash-map const)
+  ;;           (c (dissoc f const-key)))
+  ;;      (c f))))
+   ([f g]  ;; step
+   (let [const (repeat (count (ffirst f)) 0)] ;; dims
+     (->> f
+          (#(dissoc % const))  ;; remove constant term from `f` (idempotent if not present)
+          (map (fn [term]
+                 (->> term
+                      first
+                      (map #(if (zero? %)
+                              {}
+                              (pow g %)))
+                      (apply mul)
+                      (#(scale % (second term)))))) 
+          (cons {(into (vector) const) (get f const)})  ;; add constant term from `f` (idempotent if not present)
+          (apply add)
+          (into (sorted-map-by grevlex)))))
   ([f g & more]
    (reduce multi-compose (multi-compose f g) more)))
 
@@ -226,16 +250,17 @@
   (->> (range 1 (inc n))
        (combo/partitions)))
 
+;; 2nd order: (f''(g) * g' * g'') + (f'(g) * g') + (f'(g) * g'')
 (defn chain-higher1
   "Higher-order chain rule using Faà di Bruno's formula."
   [f g ^long order]
-  (let [f' (diff f order)
-        g' (diff g order)]
+  (let [f' (vals (diff f order))  ;; strip keys since all derivatives are total and indexed by order 
+        g' (vals (diff g order))]
     (->> order
          partition-set
-         (map (fn [p] (mul (multi-compose (get f' (count p)) g)
-                          (apply mul
-                                 (map (fn [b] (map #(get g' %) b) p))))))
+         (map (fn [p] (mul (multi-compose (nth f' (dec (count p))) g)
+                          (apply mul                            
+                                 (mapcat (fn [b] (map #(nth g' (dec %)) b)) p)))))
          (apply add))))
 
 (defn chain-higher
@@ -245,10 +270,4 @@
   [f g ^long order]
   (let [f' (diff f order)
         g' (diff g order)]
-    ;; (->> order
-    ;;      partition-set
-    ;;      (map (fn [p] (mul (multi-compose (get f' (count p)) g)
-    ;;                       (apply mul
-    ;;                              (map (fn [b] (map #(get g' %) b) p))))))
-    ;;      (apply add))))
     ))

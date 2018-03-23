@@ -23,17 +23,17 @@
           (diff f 2)))
 
 (defn grad
-  "Gradient. Returns a list of functions in Cartesian form."
+  "Gradient (∇). Returns a list of functions in Cartesian form."
   [f]
   (->> f
-       (jacobian)
-       (vals)))
+       jacobian
+       vals))
 
 (defn directional-diff
   "Directional derivative of vector f with magnitude n."
   [f n]
   (->> f
-       (grad)
+       grad
        (map #(scale % n))
        (#(apply add %))))
 
@@ -43,7 +43,7 @@
   (->> v
        (map #(mul % %))
        (#(apply add %))
-       (sqrt)))
+       sqrt))
 
 (defn normal
   "Computes normal of n-manifold represented by f."
@@ -52,13 +52,24 @@
     (divide (apply add g)
             (magnitude g))))
 
-(defn laplacian [f]
+(defn laplacian
+  "Laplace operator (∇^2). Returns a list of functions in Cartesian form."
+  [f]
   (let [partials (diff f 2)
-        vars (inc (count (ffirst f)))]
-    (->> (range 1 vars)
+        dims (inc (count (ffirst f)))]
+    (->> (range 1 dims)
          (map #(get partials (+ (* 10 (long %))
                                 (long %))))
-         (#(apply add %)))))
+         (apply add))))
+
+(defn laplacian2
+  [f]
+  (let [dims (count (ffirst f))]
+    (->> f
+         hessian
+         vals
+         (partition dims)
+         (mapcat add))))
 
 (defn div
   "Divergence in Cartesian form."
@@ -71,18 +82,18 @@
 (defn curl
   "Curl (rotation) in Cartesian form."
   [f]
-  (let [vars (count (first (ffirst f)))
-        range1 (range 1 (inc vars))
-        range2 (range (dec vars) (+ vars (dec vars)))
+  (let [dims (count (first (ffirst f)))
+        range1 (range 1 (inc dims))
+        range2 (range (dec dims) (+ dims (dec dims)))
         partials (vector-diff f 1)
         partials-1 (map (fn [r1 r2]
-                          (get (nth partials (mod r1 vars))
-                               (inc (long (mod r2 vars)))))
+                          (get (nth partials (mod r1 dims))
+                               (inc (long (mod r2 dims)))))
                         range2
                         range1)
         partials-2 (map (fn [r1 r2]
-                          (get (nth partials (mod r1 vars))
-                               (inc (long (mod r2 vars)))))
+                          (get (nth partials (mod r1 dims))
+                               (inc (long (mod r2 dims)))))
                         range1
                         range2)]
     (map sub partials-1 partials-2)))
