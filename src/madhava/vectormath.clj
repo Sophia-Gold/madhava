@@ -13,7 +13,7 @@
   "Computes Jacobian matrix. 
   Returns an int-map of first-order partial derivatives."
   [f]
-  (diff f 1))  
+  (diff f 1))
 
 (defn hessian
   "Computes Hessian matrix. 
@@ -23,11 +23,13 @@
           (diff f 2)))
 
 (defn grad
-  "Gradient (∇). Returns a list of functions in Cartesian form."
+  "Gradient (∇).
+  Returns a (Clojure) vector of functions in Cartesian form."
   [f]
   (->> f
        jacobian
-       vals))
+       vals
+       (into (vector))))
 
 (defn directional-diff
   "Directional derivative of vector f with magnitude n."
@@ -53,34 +55,33 @@
             (magnitude g))))
 
 (defn laplacian
-  "Laplace operator (∇^2). Returns a list of functions in Cartesian form."
-  [f]
-  (let [partials (diff f 2)
-        dims (inc (count (ffirst f)))]
-    (->> (range 1 dims)
-         (map #(get partials (+ (* 10 (long %))
-                                (long %))))
-         (apply add))))
-
-(defn laplacian2
+  "Laplace operator (∇^2).
+  Returns a (Clojure) vector of functions in Cartesian form." 
   [f]
   (let [dims (count (ffirst f))]
     (->> f
          hessian
          vals
          (partition dims)
-         (mapcat add))))
+         (apply interleave)
+         (partition dims)
+         (mapv #(apply add %)))))
 
 (defn div
-  "Divergence in Cartesian form."
-  [f]
-  (->> f
-       (#(vector-diff % 1))
-       (map-indexed #(get %2 (inc (long %1))))
-       (#(apply add %))))
+  "Divergence operator.
+  Takes and returns a (Clojure) vector of functions in Cartesian form."
+  [vf]
+  (let [dims (count vf)]
+    (->> vf
+         (#(vector-diff % 1))
+         (map vals)
+         (apply interleave)
+         (partition dims)
+         (mapv #(apply add %)))))
 
 (defn curl
-  "Curl (rotation) in Cartesian form."
+  "Curl (rotation) operator.
+  Returns a (Clojure) vector of functions in Cartesian form."
   [f]
   (let [dims (count (first (ffirst f)))
         range1 (range 1 (inc dims))
@@ -96,4 +97,4 @@
                                (inc (long (mod r2 dims)))))
                         range1
                         range2)]
-    (map sub partials-1 partials-2)))
+    (mapv sub partials-1 partials-2)))
