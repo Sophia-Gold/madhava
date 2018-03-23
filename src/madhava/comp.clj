@@ -59,27 +59,7 @@
      ([f g] (multi-compose f g))
      ([f g & more] (reduce multi-compose (multi-compose f g) more))))
   ([f] f)  ;; completion
-  ;; ([f g]  ;; step
-  ;;  (let [c (fn [f]
-  ;;            (->> f
-  ;;                 (map (fn [term]
-  ;;                        (->> term
-  ;;                             first
-  ;;                             (map #(if (zero? %)
-  ;;                                     {}
-  ;;                                     (pow g %)))
-  ;;                             (apply mul)
-  ;;                             (#(scale % (second term))))))
-  ;;                 (cons {})
-  ;;                 (apply add)
-  ;;                 (into (sorted-map-by grevlex))))
-  ;;        const (last f)
-  ;;        const-key (first const)]
-  ;;    (if (zero? (reduce +' const-key))
-  ;;      (add (apply hash-map const)
-  ;;           (c (dissoc f const-key)))
-  ;;      (c f))))
-   ([f g]  ;; step
+  ([f g]  ;; step
    (let [const (repeat (count (ffirst f)) 0)] ;; dims
      (->> f
           (#(dissoc % const))  ;; remove constant term from `f` (idempotent if not present)
