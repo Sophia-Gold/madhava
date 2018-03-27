@@ -90,3 +90,13 @@
   (->> (sinh-series)
        (integrate-series)
        (lazy-cat [1])))
+
+(defn pascal
+  "Binomial coefficients."
+  []
+  (->> (pascal) 
+       (map (fn [s] (into (vector)
+                         (concat [1]
+                                 (map #(+' %1 %2) s (rest s))
+                                 [1])))) 
+       (lazy-cat [[1]])))
