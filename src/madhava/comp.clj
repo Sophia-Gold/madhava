@@ -1,9 +1,10 @@
 (ns madhava.comp
   (:require [madhava.arithmetic :refer :all]
             [madhava.diff :refer :all]
+            [madhava.taylorseries :refer [pascal]]
             [madhava.util :refer :all]
             [madhava.vectormath :refer :all]
-            [clojure.core :as cc]
+            [clojure.core :as cc] 
             [clojure.data.avl :refer [sorted-map-by]]
             [clojure.math.combinatorics :as combo]
             [primitive-math]
@@ -154,49 +155,84 @@
   ([f g & more]
    (reduce chain2 (chain2 f g) more)))
 
-;; (defn partition-set' [n]
-;;   (->> (repeat n 1)
-;;        (combo/partitions)
-;;        (mapv (fn [x] (mapv #(reduce +' %) x)))))
+(defn chain-higher1
+  "Higher-order chain rule using Faà di Bruno's formula.
+  Optimized for univariate polynomials."
+  [f g ^long order]
+  (let [f' (vals (diff f order))  ;; strip keys since all derivatives are total and indexed by order 
+        g' (vals (diff g order))]
+    (->> order
+         partition-set
+         (map (fn [p] (mul (multi-compose (nth f' (dec (count p))) g)
+                          (apply mul                            
+                                 (mapcat (fn [b] (map #(nth g' (dec %)) b)) p)))))
+         (apply add))))
 
-;; (defn chain-higher1'
-;;   "Faster implementation of higher-order chain rule for univariate functions."
-;;   [f g ^long order]
-;;   (let [f' (diff f order)
-;;         g' (diff g order)
-;;         partitions (reverse (partition-set' order)) 
-;;         coeff (map (fn [p] (->> order     ;; number of partitions of set with elements
-;;                                (inc)     ;; equal to order into sets of x elements
-;;                                (range 1)
-;;                                (combo/partitions)
-;;                                (map sort)  ;; TO DO: don't sort
-;;                                (filter #(= (map count %) p))
-;;                                (count))) 
-;;                    (map sort partitions))] ;; TO DO: don't sort
-;;     (reduce add
-;;             (map #(mul {[0] %1}
-;;                        (compose (get f' %2) g 1)
-;;                        (reduce mul
-;;                                (map (fn [x] (pow (get g' (first x))
-;;                                                 (second x)))
-;;                                     %3)))
-;;                  coeff
-;;                  (reverse (range 1 (inc order))) 
-;;                  (map frequencies partitions)))))
+(defn chain-higher1'
+  "Higher-order chain rule using Faà di Bruno's formula.
+  Optimized for univariate polynomials." 
+  [f g ^long order]
+  (let [f' (diff f order)
+        g' (diff g order)
+        partitions (reverse (partition-int order)) 
+        coeff (map (fn [p] (->> order     ;; number of partitions of set with elements
+                               (inc)     ;; equal to order into sets of x elements
+                               (range 1)
+                               (combo/partitions)
+                               (map sort)  ;; TO DO: don't sort
+                               (filter #(= (map count %) p))
+                               (count))) 
+                   (map sort partitions))] ;; TO DO: don't sort
+    (reduce add
+            (map #(mul {[0] %1}
+                       (multi-compose (get f' %2) g)
+                       (reduce mul
+                               (map (fn [x] (pow (get g' (first x))
+                                                (second x)))
+                                    %3)))
+                 coeff
+                 (reverse (range 1 (inc order))) 
+                 (map frequencies partitions)))))
+
+;; just returning keys for sanity check:
+(defn chain-higher
+  "Higher-order chain rule using Faà di Bruno's formula."
+  [f g ^long order]
+  (let [f' (diff f order)
+        g' (diff g order)]
+    (->> order
+         partition-set
+         (map (fn [p] ;; (mul (multi-compose (get f' (+' (long (Math/pow 10 (dec (count p))))
+                     ;;                                 (dec (count p))))
+                     ;;                     g)
+                (println p)
+                (println (+' (long (Math/pow 10 (dec (count p))))
+                             (dec (count p))))
+                (->> p
+                     (mapcat (fn [b] (map #(*' (long (Math/pow 10 (dec %2)))
+                                              %1)
+                                         b
+                                         (reverse b))))
+                     (reduce +')))))))
+                               ;; (get g')
+                               ;; (apply mul)))))) 
+         ;; (apply add))))
+
+;; (chain-higher {[2 1] 1, [1 0] 4} {[1 1] 2, [0 1] 5} 2)
 
 ;; (defn chain-higher'
 ;;   "Higher-order chain rule using Faà di Bruno's formula."
-;;   [f g ^long order ^long idx]
+;;   [f g ^long order]
 ;;   (let [f' (diff f order)
 ;;         g' (diff g order)
 ;;         dims (count (ffirst f))]
 ;;     (reduce add
 ;;             (map (fn [degree partitions]
-;;                    (let [f-partials (compose (get f' (->> degree 
-;;                                                           (range)
-;;                                                           (map #(* (long (Math/pow 10 %)) idx))
-;;                                                           (reduce +')))
-;;                                              g idx)
+;;                    (let [f-partials (multi-compose (get f' (->> degree
+;;                                                                 (range)
+;;                                                                 (map #(* (long (Math/pow 10 %)) %))
+;;                                                                 (reduce +')))
+;;                                                    g)
 ;;                          g-idxs (map (fn [x] (->> x
 ;;                                                  (range)
 ;;                                                  (map (fn [k] (map #(* (long (Math/pow 10 k)) (long %)) 
@@ -214,30 +250,24 @@
 ;;                           (map #(mul f-partials %))
 ;;                           (reduce add))))
 ;;                  (range 1 (inc order))
-;;                  (map distinct (partition-set' order))))))
+;;                  (map distinct (partition-int order))))))
 
-;; (defn chain-higher
+;; (defn chain-higher''
 ;;   "Multivariate higher-order chain rule."
 ;;   [f g ^long order]
 ;;   (->> f
 ;;        ffirst
 ;;        count
 ;;        range 
-;;        (map #(chain-higher' f g order %))
+;;        (map #(chain-higher1' f g order %))
 ;;        (reduce add)))
 
-(defn partition-set [n]
-  (->> (range 1 (inc n))
-       (combo/partitions)))
-
-(defn chain-higher1
-  "Higher-order chain rule using Faà di Bruno's formula."
-  [f g ^long order]
-  (let [f' (vals (diff f order))  ;; strip keys since all derivatives are total and indexed by order 
-        g' (vals (diff g order))]
-    (->> order
-         partition-set
-         (map (fn [p] (mul (multi-compose (nth f' (dec (count p))) g)
-                          (apply mul                            
-                                 (mapcat (fn [b] (map #(nth g' (dec %)) b)) p)))))
-         (apply add))))
+;; (defn chain-higher'''
+;;   "Higher-order chain rule using Faà di Bruno's formula.
+;;   Binomial coefficient implementation."
+;;   [f g ^long order]
+;;   (->> pascal
+;;        (map-indexed #(*' (inc %1) %2))
+;;        (take order)
+;;        (reduce +')
+;;        (#(/ (factorial order) %))))

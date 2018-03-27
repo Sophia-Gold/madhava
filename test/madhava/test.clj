@@ -141,10 +141,10 @@
                         1))))
 
 ;; (deftest chain-higher-tests
-;;   (is (= (laplacian (multi-compose {[2] 1, [1] 5, [0] 70}
-;;                                    {[2] 1, [1] 5, [0] 70})) 
-;;          (chain-higher {[2] 1, [1] 5, [0] 70}
-;;                        {[2] 1, [1] 5, [0] 70}
+;;   (is (= (laplacian (multi-compose {[2 1] 1, [1 0] 4}
+;;                                    {[1 1] 2, [0 1] 5}))
+;;          (chain-higher {[2 1] 1, [1 0] 4}
+;;                        {[1 1] 2, [0 1] 5}
 ;;                        2))))
 
 (deftest grad-tests

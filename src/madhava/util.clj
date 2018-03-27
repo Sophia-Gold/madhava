@@ -1,5 +1,6 @@
 (ns madhava.util
   (:require [clojure.core :as cc]
+            [clojure.math.combinatorics :as combo]
             [com.rpl.specter :refer :all]
             [primitive-math]))
 
@@ -41,3 +42,12 @@
 (defn factorial
   [n]
   (reduce *' (range 1 (inc n))))
+
+(defn partition-set [n]
+  (->> (range 1 (inc n))
+       (combo/partitions)))
+
+(defn partition-int [n]
+  (->> (repeat n 1)
+       (combo/partitions)
+       (mapv (fn [x] (mapv #(reduce +' %) x)))))
