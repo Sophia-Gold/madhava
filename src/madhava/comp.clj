@@ -194,7 +194,6 @@
                  (reverse (range 1 (inc order))) 
                  (map frequencies partitions)))))
 
-;; just returning keys for sanity check:
 (defn chain-higher
   "Higher-order chain rule using Faà di Bruno's formula."
   [f g ^long order]
@@ -202,23 +201,15 @@
         g' (diff g order)]
     (->> order
          partition-set
-         (map (fn [p] ;; (mul (multi-compose (get f' (+' (long (Math/pow 10 (dec (count p))))
-                     ;;                                 (dec (count p))))
-                     ;;                     g)
-                (println p)
-                (println (+' (long (Math/pow 10 (dec (count p))))
-                             (dec (count p))))
-                (->> p
-                     (mapcat (fn [b] (map #(*' (long (Math/pow 10 (dec %2)))
-                                              %1)
-                                         b
-                                         (reverse b))))
-                     (reduce +')))))))
-                               ;; (get g')
-                               ;; (apply mul)))))) 
-         ;; (apply add))))
-
-;; (chain-higher {[2 1] 1, [1 0] 4} {[1 1] 2, [0 1] 5} 2)
+         (map (fn [p] ;; (mul (multi-compose (get f' (count p)) g)
+                          (->> p
+                               (map (fn [b] (->> b
+                                                (map-indexed #(*' (long (Math/pow 10 %1)) 
+                                                                  %2)) 
+                                                (reduce +')
+                                                (get g'))))
+                                                (apply mul))))
+         (apply add))))
 
 ;; (defn chain-higher'
 ;;   "Higher-order chain rule using Faà di Bruno's formula."

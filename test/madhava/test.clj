@@ -140,12 +140,12 @@
                         {[2] 1, [1] 5, [0] 7}
                         1))))
 
-;; (deftest chain-higher-tests
-;;   (is (= (laplacian (multi-compose {[2 1] 1, [1 0] 4}
-;;                                    {[1 1] 2, [0 1] 5}))
-;;          (chain-higher {[2 1] 1, [1 0] 4}
-;;                        {[1 1] 2, [0 1] 5}
-;;                        2))))
+(deftest chain-higher-tests
+  (is (= (laplacian (multi-compose {[2 1] 1, [1 0] 4}
+                                   {[1 1] 2, [0 1] 5}))
+         (chain-higher {[2 1] 1, [1 0] 4}
+                       {[1 1] 2, [0 1] 5}
+                       2))))
 
 (deftest grad-tests
   (is (= (grad {[2 1 2] 8, [0 4 0] 1, [0 0 3] 2, [1 0 0] 5})
