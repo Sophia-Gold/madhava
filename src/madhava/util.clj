@@ -43,11 +43,21 @@
   [n]
   (reduce *' (range 1 (inc n))))
 
-(defn partition-set [n]
-  (->> (range 1 (inc n))
-       (combo/partitions)))
+(defn partition-set
+  [n]
+  (->> (range 1 (cc/inc n))
+       combo/partitions))
 
-(defn partition-int [n]
+(defn partition-multiset
+  "Useful for 'collapsing' partitions."
+  [s]
+  (->> s
+       frequencies
+       (map #(vector (first %) (partition-set (second %))))
+       (into {})))
+ 
+(defn partition-int
+  [n]
   (->> (repeat n 1)
-       (combo/partitions)
-       (mapv (fn [x] (mapv #(reduce +' %) x)))))
+       combo/partitions
+       (mapv (fn [p] (mapv #(reduce +' %) p)))))
