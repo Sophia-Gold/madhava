@@ -195,20 +195,29 @@
                  (map frequencies partitions)))))
 
 (defn chain-higher
-  "Higher-order chain rule using Faà di Bruno's formula."
+  "Higher-order chain rule using Faà di Bruno's formula.
+  Works over multiple variables using the \"collapsing partitions\" technique
+  developed by Michael Hardy in \"Combinatorics of Partial Derivatives.\""
   [f g ^long order]
   (let [f' (diff f order)
         g' (diff g order)]
     (->> order
          partition-set
-         (map (fn [p] ;; (mul (multi-compose (get f' (count p)) g)
-                          (->> p
-                               (map (fn [b] (->> b
-                                                (map-indexed #(*' (long (Math/pow 10 %1)) 
-                                                                  %2)) 
-                                                (reduce +')
-                                                (get g'))))
-                                                (apply mul))))
+         (map (fn [p]
+                (mul (multi-compose (->> p
+                                         count
+                                         (range)
+                                         (map #(long (Math/pow 10 %)))
+                                         (reduce +')
+                                         (get f'))
+                                    g)
+                     (->> p
+                          (map (fn [b] (->> b
+                                           (map-indexed #(*' (long (Math/pow 10 %1)) 
+                                                             %2)) 
+                                           (reduce +')
+                                           (get g'))))
+                          (apply mul)))))
          (apply add))))
 
 ;; (defn chain-higher'
