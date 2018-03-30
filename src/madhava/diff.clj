@@ -13,7 +13,7 @@
 (primitive-math/use-primitive-operators)
 
 (defn diff
-  "Computes all partials derivates of a function up to a given order.
+  "Computes all partial derivates of a function up to a given order.
   Functions are represented as sorted-maps of monomials in graded 
   reverse lexicographic order with tuples of exponents as keys and 
   corresponding coefficients as values. Returns a map ('tape') with
@@ -41,6 +41,29 @@
                                   (inc n))
                       (range dims))))]
       (diff-loop (list poly 0) 0)
+      (persistent! @tape))))
+
+(defn diff-unmixed
+  "Same as `diff`, but computes only unmixed partials.
+  Returns an int-map keyed by the differentiated variable
+  containing ordered sequences of its unmixed partials."
+  [poly ^long order]
+  (let [tape (atom (transient (i/int-map)))
+        dims (count (ffirst poly))]
+    (letfn [(partial-diff [poly ^long idx]
+              (loop [partial poly
+                     n 0]
+                (when (< n order)
+                  (let [next-partial (transform [ALL] (fn [[k v]]
+                                                        (let [var (long (nth k idx))]
+                                                          (when (not (zero? var))
+                                                            [(update k idx cc/dec)
+                                                             (cc/* v var)])))
+                                                partial)]
+                    (swap! tape i/update! (inc idx) conj next-partial)
+                    (recur next-partial (inc n))))))]
+      (run! #(swap! tape assoc! % (vector)) (range 1 (inc dims)))
+      (run! #(partial-diff poly %) (range dims))
       (persistent! @tape))))
 
 (defn anti-diff
