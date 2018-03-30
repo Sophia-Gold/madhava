@@ -66,6 +66,24 @@
       (run! #(partial-diff poly %) (range dims))
       (persistent! @tape))))
 
+(defn diff-unmixed1
+  "Same as `diff`, but computes only unmixed partials.
+  Returns an ordered sequence of unmixed partials
+  of the variable at the given index."
+  [poly ^long order ^long idx]
+  (letfn [(partial-diff [poly]
+            (transform [ALL] (fn [[k v]]
+                               (let [var (long (nth k idx))]
+                                 (when (not (zero? var))
+                                   [(update k idx cc/dec)
+                                    (cc/* v var)])))
+                       poly))]
+    (->> poly
+         (iterate partial-diff)
+         (drop 1)
+         (take order)
+         (into (vector)))))
+
 (defn anti-diff
   "Computes all indefinite integrals of a function up to a given order.
   Functions are represented as sorted-maps of monomials in graded 
