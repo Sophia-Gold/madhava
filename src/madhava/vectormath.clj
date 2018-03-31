@@ -57,12 +57,11 @@
 (defn laplacian
   "Laplace operator (∇^2)."
   [f]
-  (let [partials (diff f 2)
-        vars (inc (count (ffirst f)))]
-    (->> (range 1 vars)
-         (map #(get partials (+ (* 10 (long %))
-                                (long %))))
-         (#(apply add %)))))
+  (->> f
+      (#(diff-unmixed % 2))
+      vals
+      (map peek)
+      (apply add)))
 
 (defn div
   "Divergence operator.
