@@ -1,7 +1,6 @@
 (ns madhava.comp
   (:require [madhava.arithmetic :refer :all]
             [madhava.diff :refer :all]
-            [madhava.taylorseries :refer [pascal]]
             [madhava.util :refer :all]
             [madhava.vectormath :refer :all]
             [clojure.core :as cc] 
@@ -53,6 +52,7 @@
 (defn multi-compose
   "Functional composition.
   Substitutes `g` for all variables in `f`.
+  `f` and `g` do *not* have to have the same arity.
   Variadic, unary version returns transducer."
   ([]  ;; init
    (fn
@@ -64,14 +64,12 @@
    (let [const (into (vector) (repeat (count (ffirst f)) 0))] ;; dims
      (->> f
           (#(dissoc % const)) ;; remove constant term from `f` (idempotent if not present)
-          (map (fn [term]
-                 (->> term
-                      first
-                      (map #(if (zero? %)
-                              {}
-                              (pow g %)))
-                      (apply mul)
-                      (#(scale % (second term))))))
+          (mapcat (fn [[vars coeff]]
+                    (map (fn [v]
+                           (if (zero? v)
+                             {}
+                             (scale (pow g v) coeff)))
+                         vars)))
           (cons {const (get f const)})  ;; add constant term from `f` (idempotent if not present)
           (apply add)
           (into (sorted-map-by grevlex)))))
@@ -168,6 +166,8 @@
                                  (mapcat (fn [b] (map #(nth g' (dec %)) b)) p)))))
          (apply add))))
 
+;; slow
+;; bug on order > 1
 (defn chain-higher1'
   "Higher-order chain rule using Faà di Bruno's formula.
   Optimized for univariate polynomials." 
@@ -196,21 +196,17 @@
 
 (defn chain-higher
   "Higher-order chain rule using Faà di Bruno's formula.
-  Works over multiple variables using the \"collapsing partitions\" technique
-  developed by Michael Hardy in \"Combinatorics of Partial Derivatives.\""
+  Works over multiple variables in `g` using the \"collapsing partitions\" 
+  technique from Michael Hardy's \"Combinatorics of Partial Derivatives.\""
   [f g ^long order]
-  (let [f' (diff f order)
+  (let [f (nth (iterate add-dim f)  ;; coerce `f` to dimensionality of `g`
+               (dec (long (count (ffirst g)))))
+        f' (diff-unmixed1 f order 1)
         g' (diff g order)]
     (->> order
          partition-set
          (map (fn [p]
-                (mul (multi-compose (->> p
-                                         count
-                                         (range)
-                                         (map #(long (Math/pow 10 %)))
-                                         (reduce +')
-                                         (get f'))
-                                    g)
+                (mul (multi-compose (nth f' (dec (count p))) g)
                      (->> p
                           (map (fn [b] (->> b
                                            (map-indexed #(*' (long (Math/pow 10 %1)) 
@@ -220,54 +216,34 @@
                           (apply mul)))))
          (apply add))))
 
-;; (defn chain-higher'
-;;   "Higher-order chain rule using Faà di Bruno's formula."
-;;   [f g ^long order]
-;;   (let [f' (diff f order)
-;;         g' (diff g order)
-;;         dims (count (ffirst f))]
-;;     (reduce add
-;;             (map (fn [degree partitions]
-;;                    (let [f-partials (multi-compose (get f' (->> degree
-;;                                                                 (range)
-;;                                                                 (map #(* (long (Math/pow 10 %)) %))
-;;                                                                 (reduce +')))
-;;                                                    g)
-;;                          g-idxs (map (fn [x] (->> x
-;;                                                  (range)
-;;                                                  (map (fn [k] (map #(* (long (Math/pow 10 k)) (long %)) 
-;;                                                                   (range 1 (inc dims)))))
-;;                                                  (apply map +')))
-;;                                      partitions)
-;;                          g-partials (if (< 1 (count g-idxs))
-;;                                       (apply (fn [x] (map-indexed #(sort
-;;                                                                    (assoc (into (vector) (first g-idxs)) %1 %2))
-;;                                                                  x))
-;;                                              (next g-idxs))
-;;                                       g-idxs)] 
-;;                      (->> g-partials
-;;                           (mapcat (fn [k] (map #(get g' %) k)))
-;;                           (map #(mul f-partials %))
-;;                           (reduce add))))
-;;                  (range 1 (inc order))
-;;                  (map distinct (partition-int order))))))
-
-;; (defn chain-higher''
-;;   "Multivariate higher-order chain rule."
-;;   [f g ^long order]
-;;   (->> f
-;;        ffirst
-;;        count
-;;        range 
-;;        (map #(chain-higher1' f g order %))
-;;        (reduce add)))
-
-;; (defn chain-higher'''
-;;   "Higher-order chain rule using Faà di Bruno's formula.
-;;   Binomial coefficient implementation."
-;;   [f g ^long order]
-;;   (->> pascal
-;;        (map-indexed #(*' (inc %1) %2))
-;;        (take order)
-;;        (reduce +')
-;;        (#(/ (factorial order) %))))
+;; slow
+(defn chain-higher'
+  "Higher-order chain rule using Faà di Bruno's formula.
+  Works over multiple variables in `g`"
+  [f g ^long order]
+  (let [f (nth (iterate add-dim f)  ;; coerce `f` to dimensionality of `g`
+               (dec (long (count (ffirst g)))))
+        f' (diff-unmixed1 f order 1) 
+        g' (diff g order)
+        dims (count (ffirst f))]
+    (reduce add
+            (map (fn [degree partitions]
+                   (let [f-partials (multi-compose (nth f' (dec degree)) g)
+                         g-idxs (map (fn [x] (->> x
+                                                 (range)
+                                                 (map (fn [k] (map #(* (long (Math/pow 10 k)) (long %)) 
+                                                                  (range 1 (inc dims)))))
+                                                 (apply map +')))
+                                     partitions)
+                         g-partials (if (< 1 (count g-idxs))
+                                      (apply (fn [x] (map-indexed #(sort
+                                                                   (assoc (into (vector) (first g-idxs)) %1 %2))
+                                                                 x))
+                                             (next g-idxs))
+                                      g-idxs)] 
+                     (->> g-partials
+                          (mapcat (fn [k] (map #(get g' %) k)))
+                          (map #(mul f-partials %))
+                          (reduce add))))
+                 (range 1 (inc order))
+                 (map distinct (partition-int order))))))

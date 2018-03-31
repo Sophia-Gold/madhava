@@ -71,19 +71,20 @@
   Returns an ordered sequence of unmixed partials
   of the variable at the given index."
   [poly ^long order ^long idx]
-  (letfn [(partial-diff [poly]
-            (transform [ALL] (fn [[k v]]
-                               (let [var (long (nth k idx))]
-                                 (when (not (zero? var))
-                                   [(update k idx cc/dec)
-                                    (cc/* v var)])))
-                       poly))]
-    (->> poly
-         (iterate partial-diff)
-         (drop 1)
-         (take order)
-         (into (vector)))))
-
+  (let [idx (dec idx)]  ;; tuples of exponents are ordered from 1...my bad, Dijkstra
+    (letfn [(partial-diff [poly]
+              (transform [ALL] (fn [[k v]]
+                                 (let [var (long (nth k idx))]
+                                   (when (not (zero? var))
+                                     [(update k idx cc/dec)
+                                      (cc/* v var)])))
+                         poly))]
+      (->> poly
+           (iterate partial-diff)
+           (drop 1)
+           (take order)
+           (into (vector))))))
+  
 (defn anti-diff
   "Computes all indefinite integrals of a function up to a given order.
   Functions are represented as sorted-maps of monomials in graded 

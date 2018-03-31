@@ -3,6 +3,7 @@
             [madhava.arithmetic :refer :all]
             [madhava.comp :refer :all] 
             [madhava.taylorseries :refer :all]
+            [madhava.util :refer [add-dim]]
             [madhava.vectormath :refer :all]
             [clj-tuple :refer [vector]])
   (:refer-clojure :exclude [vector]))
@@ -141,11 +142,11 @@
                         1))))
 
 ;; (deftest chain-higher-tests
-;;   (is (= (laplacian (multi-compose {[2 1] 1, [1 0] 4}
-;;                                    {[1 1] 2, [0 1] 5}))
-;;          (chain-higher {[2 1] 1, [1 0] 4}
-;;                        {[1 1] 2, [0 1] 5}
-;;                        2))))
+;;   (is (= (laplacian (multi-compose (add-dim {[2] 1, [1] 5, [0] 7})
+;;                                    {[2 1] 1, [1 0] 4}))
+;;          (chain-higher' {[2] 1, [1] 5, [0] 7}
+;;                         {[2 1] 1, [1 0] 4} 
+;;                         2))))
 
 (deftest grad-tests
   (is (= (grad {[2 1 2] 8, [0 4 0] 1, [0 0 3] 2, [1 0 0] 5})
