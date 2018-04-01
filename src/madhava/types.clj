@@ -58,6 +58,27 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
+;; Pretty Printing for LHS
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defmethod print-method Term [v ^java.io.Writer w]
+  (print-method (:coeff v) w)
+  (print-method (:vars v) w)
+  ;; map-indexed over vars: (cond-> v
+  ;;                          0 ""
+  ;;                          1 %
+  ;;                          :else "(" % "^v)"
+  )
+
+(defmethod print-method Poly [v ^java.io.Writer w]
+  (print-method (:terms v) w)
+  ;; insert a "+" in between terms
+  ;; (.write w "+")
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;; Difference List Example (for reference)
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
