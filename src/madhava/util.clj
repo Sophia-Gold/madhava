@@ -47,7 +47,6 @@
   [n]
   (->> (range 1 (cc/inc n))
        combo/partitions))
-
 (defn partition-multiset
   "Useful for 'collapsing' partitions."
   [s]

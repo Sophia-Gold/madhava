@@ -39,7 +39,7 @@
 (deftest ^:benchmark division-bench
   (println "\nDivision")
   (quick-bench
-   (divide {[6 4 5] 40, [4 3 6] 10, [5 3 3] 25, [2 1 5] 16, [0 0 6] 4, [1 0 3] 10}
+   (quotient {[6 4 5] 40, [4 3 6] 10, [5 3 3] 25, [2 1 5] 16, [0 0 6] 4, [1 0 3] 10}
            {[2 1 2] 8, [0 0 3] 2, [1 0 0] 5})))
 
 (deftest ^:benchmark comp-bench

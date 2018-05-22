@@ -161,7 +161,7 @@
   [poly]
   (->> poly
        (map (fn [v]
-              {(mapv #(cc// % 2) (first v)) ;; polymorphic divide: coefficiants can be longs or doubles
+              {(mapv #(cc// % 2) (first v)) ;; polymorphic quotient: coefficiants can be longs or doubles
                (Math/sqrt (second v))}))
        (into {})))
 
@@ -185,9 +185,9 @@
         lcm (compl f-vars g-vars)]
     (if (not-any? nil? lcm)
       (vector (vec lcm)
-              (cc// (second f) (second g))))))  ;; polymorphic divide: coefficiants can be longs or doubles
+              (cc// (second f) (second g))))))  ;; polymorphic quotient: coefficiants can be longs or doubles
 
-(defn divide
+(defn quotient
   "Polynomial long division using Buchberger's algorithm.
   Binary only, returns a tuple of quotient and remainder.
   Not guaranteed to be the inverse of multiplication."

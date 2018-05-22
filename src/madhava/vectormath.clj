@@ -51,7 +51,7 @@
   "Computes normal of n-manifold represented by f."
   [f]
   (let [g (grad f)]
-    (divide (apply add g)
+    (quotient (apply add g)
             (magnitude g))))
 
 (defn laplacian
